@@ -1,0 +1,833 @@
+@page "/transactions"
+@using comptabilité.Models
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@using System
+@using System.Linq
+@using System.Globalization
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Transactions - Récapitulatif des dépenses</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Récapitulatif des Dépenses et Gains</h2>
+
+    <!-- Filtres par période -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filtres par période</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Année</label>
+                    <select class="form-select" @bind="selectedYear" @bind:after="LoadRecap">
+                        <option value="0">Toutes les années</option>
+                        @foreach (var year in availableYears.OrderByDescending(y => y))
+                        {
+                            <option value="@year">@year</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" @bind="selectedType" @bind:after="LoadRecap">
+                        <option value="">Tous</option>
+                        <option value="Dépense">Dépenses</option>
+                        <option value="Gain">Gains</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button class="btn btn-primary w-100" @onclick="ShowAddTransactionModal">
+                        <i class="bi bi-plus-circle"></i> Ajouter une transaction
+                    </button>
+                </div>
+            </div>
+            @if (selectedMonthFilter.HasValue)
+            {
+                <div class="alert alert-info d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3 mb-0">
+                    <span class="fw-semibold">
+                        Filtre appliqué : @GetMonthName(selectedMonthFilter.Value) @(selectedYear > 0 ? selectedYear.ToString() : "(toutes les années)")
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearMonthFilter">
+                        Réinitialiser le filtre mois
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Récapitulatif mensuel + détails -->
+    <div class="row g-4 align-items-start mb-4">
+        <div class="col-12 col-xl-8">
+            <div class="card h-100 mb-4 mb-xl-0">
+                <div class="card-header">
+                    <h5 class="mb-0">Récapitulatif par mois</h5>
+                </div>
+                <div class="card-body">
+                    @if (recapByMonth != null && recapByMonth.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Période</th>
+                                        <th class="text-end">Total Dépenses</th>
+                                        <th class="text-end">Total Gains</th>
+                                        <th class="text-end">Solde</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var recap in recapByMonth.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month))
+                                    {
+                                        var solde = recap.TotalGains - recap.TotalDepenses;
+                                        var isPositive = solde >= 0;
+                                        <tr>
+                                            <td><strong>@GetMonthName(recap.Month) @recap.Year</strong></td>
+                                            <td class="text-end">-@recap.TotalDepenses.ToString("N2") €</td>
+                                            <td class="text-end">+@recap.TotalGains.ToString("N2") €</td>
+                                            <td class="text-end @(isPositive ? "text-success" : "text-danger")"><strong>@(solde >= 0 ? "+" : "")@solde.ToString("N2") €</strong></td>
+                                            <td class="text-center">
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="async () => await ViewMonthDetails(recap.Month, recap.Year)">
+                                                    Détails
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Aucune transaction trouvée pour cette période.</p>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-4">
+            <div class="month-details-wrapper">
+                <div class="card month-details-card @(detailsExpanded ? "expanded" : "collapsed")">
+                    <div class="card-header d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">Détails du mois</h5>
+                            <small class="text-muted">@SelectedMonthLabel</small>
+                        </div>
+                        <span class="badge bg-secondary">@SelectedMonthTransactionCount transaction(s)</span>
+                    </div>
+                    <div class="card-body">
+                        @if (!selectedMonthFilter.HasValue)
+                        {
+                            <div class="month-details-empty text-center">
+                                <i class="bi bi-calendar4-week display-5 text-info mb-3"></i>
+                                <p class="fw-semibold mb-2">Aucun mois sélectionné</p>
+                                <p class="text-muted mb-0">Cliquez sur « Détails » dans le tableau pour afficher les transactions.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            var recap = SelectedMonthRecap;
+                            if (recap != null)
+                            {
+                                var solde = recap.TotalGains - recap.TotalDepenses;
+                                var soldePositif = solde >= 0;
+                                <div class="month-summary mb-3">
+                                    <div class="month-summary-card">
+                                        <span class="month-summary-label text-muted">Total Dépenses</span>
+                                        <span class="month-summary-value text-danger">-@recap.TotalDepenses.ToString("N2") €</span>
+                                    </div>
+                                    <div class="month-summary-card">
+                                        <span class="month-summary-label text-muted">Total Gains</span>
+                                        <span class="month-summary-value text-success">+@recap.TotalGains.ToString("N2") €</span>
+                                    </div>
+                                    <div class="month-summary-card">
+                                        <span class="month-summary-label text-muted">Solde</span>
+                                        <span class="month-summary-value @(soldePositif ? "text-success" : "text-danger")">
+                                            @(soldePositif ? "+" : "")@solde.ToString("N2") €
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (transactions.Any())
+                            {
+                                <div class="month-details-list">
+                                    @foreach (var transaction in transactions.OrderByDescending(t => t.Date))
+                                    {
+                                        <div class="transaction-card @(transaction.Type == "Dépense" ? "expense" : "income")">
+                                            <div class="transaction-card-header">
+                                                <div>
+                                                    <span class="transaction-date">@transaction.Date.ToString("dd MMMM yyyy")</span>
+                                                    <h6 class="transaction-title">@(!string.IsNullOrWhiteSpace(transaction.Libelle) ? transaction.Libelle : "Sans libellé")</h6>
+                                                </div>
+                                                <div class="transaction-amount @(transaction.Type == "Dépense" ? "text-danger" : "text-success")">
+                                                    @(transaction.Type == "Dépense" ? "-" : "+")@Math.Abs(transaction.Montant).ToString("N2") €
+                                                </div>
+                                            </div>
+                                            <div class="transaction-card-body">
+                                                <div class="transaction-badges">
+                                                    <span class="badge type-badge @(transaction.Type == "Dépense" ? "bg-danger" : "bg-success")">
+                                                        <i class="bi @(transaction.Type == "Dépense" ? "bi-arrow-down-circle" : "bi-arrow-up-circle")"></i>
+                                                        @transaction.Type
+                                                    </span>
+                                                    @if (transaction.Poste != null)
+                                                    {
+                                                        <span class="badge bg-info">
+                                                            <i class="bi bi-folder-fill me-1"></i>@transaction.Poste.Nom
+                                                        </span>
+                                                    }
+                                                    @if (transaction.Client != null)
+                                                    {
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="bi bi-person-vcard-fill me-1"></i>@transaction.Client.Nom @transaction.Client.Prenom
+                                                        </span>
+                                                    }
+                                                    @if (transaction.Voiture != null)
+                                                    {
+                                                        <span class="badge bg-secondary">
+                                                            <i class="bi bi-car-front-fill me-1"></i>@transaction.Voiture.Nom
+                                                        </span>
+                                                    }
+                                                @if (transaction.Reservation != null)
+                                                {
+                                                    <span class="badge bg-primary">
+                                                        <i class="bi bi-calendar-check me-1"></i>Réservation #@transaction.Reservation.Id
+                                                    </span>
+                                                }
+                                                </div>
+                                                @if (!string.IsNullOrWhiteSpace(transaction.Description))
+                                                {
+                                                    <p class="transaction-description">@transaction.Description</p>
+                                                }
+                                            </div>
+                                            <div class="transaction-card-footer">
+                                                <div class="transaction-meta">
+                                                    <span class="text-muted">
+                                                        Créée le @transaction.DateCreation.ToString("dd/MM/yyyy HH:mm")
+                                                    </span>
+                                                </div>
+                                                <div class="transaction-actions">
+                                                    <button class="btn btn-icon btn-outline-primary" @onclick="() => EditTransaction(transaction)" title="Modifier">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteTransaction(transaction)" title="Supprimer">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="month-details-empty text-center">
+                                    <i class="bi bi-inbox display-6 text-muted mb-3"></i>
+                                    <p class="fw-semibold mb-2">Aucune transaction</p>
+                                    <p class="text-muted mb-0">Aucune donnée n'est disponible pour ce mois.</p>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter/éditer une transaction -->
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(currentTransaction.Id == 0 ? "Ajouter" : "Modifier") une transaction</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(statusMessage))
+                    {
+                        <div class="alert alert-danger mb-3" role="alert">
+                            @statusMessage
+                        </div>
+                    }
+                    <EditForm Model="currentTransaction" OnValidSubmit="SaveTransaction">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Date *</label>
+                            <InputDate class="form-control" @bind-Value="currentTransaction.Date" />
+                            <ValidationMessage For="@(() => currentTransaction.Date)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Type *</label>
+                            <select class="form-select" @bind="currentTransaction.Type" @bind:after="OnTypeChanged">
+                                <option value="Dépense">Dépense</option>
+                                <option value="Gain">Gain</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Libellé @(currentTransaction.Type == "Gain" ? "*" : "(optionnel)")</label>
+                            <InputText class="form-control" @bind-Value="currentTransaction.Libelle" />
+                            <ValidationMessage For="@(() => currentTransaction.Libelle)" />
+                        </div>
+                        @if (currentTransaction.Type == "Dépense")
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Poste de dépense</label>
+                                <select class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
+                                    <option value="">Aucun poste</option>
+                                    @foreach (var poste in postes)
+                                    {
+                                        <option value="@poste.Id">@poste.Nom</option>
+                                    }
+                                </select>
+                            </div>
+                            @if (selectedPoste != null && selectedPoste.PeutAvoirVoiture)
+                            {
+                                <div class="mb-3">
+                                    <label class="form-label">Voiture</label>
+                                    <select class="form-select" @bind="selectedVoitureId">
+                                        <option value="">Aucune voiture</option>
+                                        @foreach (var voiture in voitures)
+                                        {
+                                            <option value="@voiture.Id">@voiture.Nom</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
+                        }
+                        else if (currentTransaction.Type == "Gain")
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Client *</label>
+                                <select class="form-select" @bind="selectedClientId" @bind:after="OnGainClientChanged">
+                                    <option value="">Sélectionner un client</option>
+                                    @foreach (var client in clients)
+                                    {
+                                        <option value="@client.Id">@client.Nom @client.Prenom</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Poste de dépense</label>
+                                <select class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
+                                    <option value="">Aucun poste</option>
+                                    @foreach (var poste in postes)
+                                    {
+                                        <option value="@poste.Id">@poste.Nom</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Voiture</label>
+                                <select class="form-select" @bind="selectedVoitureId">
+                                    <option value="">Aucune voiture</option>
+                                    @foreach (var voiture in voitures)
+                                    {
+                                        <option value="@voiture.Id">@voiture.Nom</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        @if (reservations.Any())
+                        {
+                            var availableReservations = GetAvailableReservations().ToList();
+                            <div class="mb-3">
+                                <label class="form-label">Réservation associée</label>
+                                @if (!availableReservations.Any())
+                                {
+                                    <div class="form-text">
+                                        Aucune réservation disponible pour cette sélection.
+                                    </div>
+                                }
+                                else
+                                {
+                                    <InputSelect class="form-select" @bind-Value="currentTransaction.ReservationId" TValue="int?">
+                                        <option value="">Aucune réservation</option>
+                                        @foreach (var reservation in availableReservations)
+                                        {
+                                            <option value="@reservation.Id">@GetReservationLabel(reservation)</option>
+                                        }
+                                    </InputSelect>
+                                }
+                            </div>
+                        }
+                        <div class="mb-3">
+                            <label class="form-label">Montant *</label>
+                            <InputNumber class="form-control" @bind-Value="currentTransaction.Montant" />
+                            <ValidationMessage For="@(() => currentTransaction.Montant)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea class="form-control" @bind-Value="currentTransaction.Description" rows="3" />
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Transaction> transactions = new();
+    private List<RecapMensuel> recapByMonth = new();
+    private int? selectedMonthFilter;
+    private int selectedYear = DateTime.Now.Year;
+    private string selectedType = "";
+    private bool showModal = false;
+    private Transaction currentTransaction = new();
+    private List<int> availableYears = new();
+    private List<Poste> postes = new();
+    private List<Voiture> voitures = new();
+    private List<Client> clients = new();
+    private List<Reservation> reservations = new();
+    private int? selectedPosteId;
+    private int? selectedVoitureId;
+    private int? selectedClientId;
+    private Poste? selectedPoste;
+    private string? statusMessage;
+    private bool detailsExpanded = true;
+    private bool isAnimatingDetails;
+    private const int DetailsAnimationDuration = 280;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPostes();
+        await LoadVoitures();
+        await LoadClients();
+        await LoadReservations();
+        await LoadTransactions();
+        await LoadRecap();
+        LoadAvailableYears();
+    }
+
+    private async Task LoadPostes()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+    }
+
+    private async Task LoadVoitures()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        voitures = await db.Voitures.OrderBy(v => v.Nom).ToListAsync();
+    }
+
+    private async Task LoadClients()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        clients = await db.Clients.OrderBy(c => c.Nom).ThenBy(c => c.Prenom).ToListAsync();
+    }
+
+    private async Task LoadReservations()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        reservations = await db.Reservations
+            .Include(r => r.Client)
+            .OrderByDescending(r => r.DateDebut)
+            .ToListAsync();
+    }
+
+    private void OnPosteChanged()
+    {
+        selectedPoste = postes.FirstOrDefault(p => p.Id == selectedPosteId);
+        if (selectedPoste == null || !selectedPoste.PeutAvoirVoiture)
+        {
+            selectedVoitureId = null;
+        }
+    }
+
+    private void OnTypeChanged()
+    {
+        // Réinitialiser les sélections lors du changement de type
+        if (currentTransaction.Type == "Dépense")
+        {
+            selectedClientId = null;
+            currentTransaction.ReservationId = null;
+        }
+        else if (currentTransaction.Type == "Gain")
+        {
+            // On garde le poste pour les gains maintenant
+            // Pas besoin de réinitialiser selectedPosteId
+        }
+    }
+
+    private void OnGainClientChanged()
+    {
+        currentTransaction.ReservationId = null;
+        StateHasChanged();
+    }
+
+    private void LoadAvailableYears()
+    {
+        // Générer une liste d'années de 2023 à 2027
+        availableYears = Enumerable.Range(2023, 2027 - 2023 + 1).ToList();
+        
+        // Ajouter aussi les années qui existent dans les transactions si elles ne sont pas déjà dans la liste
+        if (transactions.Any())
+        {
+            var transactionYears = transactions.Select(t => t.Date.Year).Distinct().ToList();
+            foreach (var year in transactionYears)
+            {
+                if (!availableYears.Contains(year))
+                {
+                    availableYears.Add(year);
+                }
+            }
+        }
+        
+        // Trier par ordre décroissant
+        availableYears = availableYears.OrderByDescending(y => y).ToList();
+    }
+
+    private async Task LoadTransactions()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        
+        var query = db.Transactions.AsQueryable();
+
+        if (selectedMonthFilter.HasValue)
+        {
+            query = query.Where(t => t.Date.Month == selectedMonthFilter.Value);
+        }
+
+        if (selectedYear > 0)
+        {
+            query = query.Where(t => t.Date.Year == selectedYear);
+        }
+
+        if (!string.IsNullOrEmpty(selectedType))
+        {
+            query = query.Where(t => t.Type == selectedType);
+        }
+
+        transactions = await query
+            .Include(t => t.Poste)
+            .Include(t => t.Voiture)
+            .Include(t => t.Client)
+            .Include(t => t.Reservation)
+                .ThenInclude(r => r.Client)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+    }
+
+    private async Task LoadRecap()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        var query = db.Transactions.AsQueryable();
+
+        if (selectedYear > 0)
+        {
+            query = query.Where(t => t.Date.Year == selectedYear);
+        }
+
+        if (!string.IsNullOrEmpty(selectedType))
+        {
+            query = query.Where(t => t.Type == selectedType);
+        }
+
+        var allTransactions = await query.ToListAsync();
+
+        recapByMonth = allTransactions
+            .GroupBy(t => new { t.Date.Year, t.Date.Month })
+            .Select(g => new RecapMensuel
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                TotalDepenses = g.Where(t => t.Type == "Dépense").Sum(t => t.Montant),
+                TotalGains = g.Where(t => t.Type == "Gain").Sum(t => t.Montant)
+            })
+            .ToList();
+
+        await LoadTransactions();
+    }
+
+    private void ShowAddTransactionModal()
+    {
+        currentTransaction = new Transaction 
+        { 
+            Date = DateTime.Now,
+            Type = "Dépense"
+        };
+        selectedPosteId = null;
+        selectedVoitureId = null;
+        selectedClientId = null;
+        currentTransaction.ReservationId = null;
+        selectedPoste = null;
+        statusMessage = null;
+        showModal = true;
+    }
+
+    private void EditTransaction(Transaction transaction)
+    {
+        currentTransaction = new Transaction
+        {
+            Id = transaction.Id,
+            Date = transaction.Date,
+            Montant = transaction.Montant,
+            Libelle = transaction.Libelle,
+            Description = transaction.Description,
+            Type = transaction.Type,
+            PosteId = transaction.PosteId,
+            VoitureId = transaction.VoitureId,
+            ClientId = transaction.ClientId,
+            ReservationId = transaction.ReservationId
+        };
+        selectedPosteId = transaction.PosteId;
+        selectedVoitureId = transaction.VoitureId;
+        selectedClientId = transaction.ClientId;
+        selectedPoste = transaction.Poste;
+        statusMessage = null;
+        showModal = true;
+    }
+
+    private async Task SaveTransaction()
+    {
+        // Validation : le client est obligatoire pour les gains
+        if (currentTransaction.Type == "Gain" && !selectedClientId.HasValue)
+        {
+            statusMessage = "Le client est obligatoire pour un gain.";
+            StateHasChanged();
+            return;
+        }
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        // Mettre à jour les IDs selon le type
+        if (currentTransaction.Type == "Dépense")
+        {
+            currentTransaction.PosteId = selectedPosteId;
+            currentTransaction.ClientId = null;
+            currentTransaction.ReservationId = null;
+        }
+        else if (currentTransaction.Type == "Gain")
+        {
+            currentTransaction.ClientId = selectedClientId;
+            currentTransaction.PosteId = selectedPosteId; // Permettre le poste pour les gains
+        }
+        
+        currentTransaction.VoitureId = selectedVoitureId;
+
+        if (currentTransaction.Id == 0)
+        {
+            db.Transactions.Add(currentTransaction);
+        }
+        else
+        {
+            var existing = await db.Transactions.FindAsync(currentTransaction.Id);
+            if (existing != null)
+            {
+                existing.Date = currentTransaction.Date;
+                existing.Montant = currentTransaction.Montant;
+                existing.Libelle = currentTransaction.Libelle;
+                existing.Description = currentTransaction.Description;
+                existing.Type = currentTransaction.Type;
+                existing.PosteId = currentTransaction.PosteId;
+                existing.VoitureId = currentTransaction.VoitureId;
+                existing.ClientId = currentTransaction.ClientId;
+                existing.ReservationId = currentTransaction.ReservationId;
+                db.Transactions.Update(existing);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        statusMessage = null;
+        CloseModal();
+        await LoadRecap();
+    }
+
+    private async Task DeleteTransaction(Transaction transaction)
+    {
+        if (!await ConfirmDelete())
+            return;
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        db.Transactions.Remove(transaction);
+        await db.SaveChangesAsync();
+        await LoadRecap();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentTransaction = new();
+        selectedPosteId = null;
+        selectedVoitureId = null;
+        selectedClientId = null;
+        currentTransaction.ReservationId = null;
+        selectedPoste = null;
+        statusMessage = null;
+    }
+
+    private async Task ViewMonthDetails(int month, int year)
+    {
+        await AnimateDetailsPanel(async () =>
+        {
+            selectedMonthFilter = month;
+            selectedYear = year;
+            await LoadRecap();
+        });
+    }
+
+    private async Task ClearMonthFilter()
+    {
+        if (!selectedMonthFilter.HasValue)
+        {
+            return;
+        }
+
+        await AnimateDetailsPanel(async () =>
+        {
+            selectedMonthFilter = null;
+            await LoadRecap();
+        });
+    }
+
+    private string GetMonthName(int month)
+    {
+        return new DateTime(2000, month, 1).ToString("MMMM", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+    }
+
+    private IEnumerable<Reservation> GetAvailableReservations()
+    {
+        if (!reservations.Any())
+        {
+            return Enumerable.Empty<Reservation>();
+        }
+
+        if (currentTransaction.Type == "Gain" && selectedClientId.HasValue)
+        {
+            return reservations.Where(r => r.ClientId == selectedClientId.Value);
+        }
+
+        return reservations;
+    }
+
+    private string GetReservationLabel(Reservation reservation)
+    {
+        var clientName = reservation.Client != null
+            ? $"{reservation.Client.Nom} {reservation.Client.Prenom}".Trim()
+            : $"Client #{reservation.ClientId}";
+
+        var culture = CultureInfo.GetCultureInfo("fr-FR");
+        var start = reservation.DateDebut.ToString("dd MMM yy", culture);
+        var end = reservation.DateFin.ToString("dd MMM yy", culture);
+
+        return $"{clientName} • {start} → {end}";
+    }
+
+    private async Task<bool> ConfirmDelete()
+    {
+        return await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer cette transaction ?");
+    }
+
+    private async Task AnimateDetailsPanel(Func<Task> updateAction)
+    {
+        if (isAnimatingDetails)
+        {
+            if (updateAction != null)
+            {
+                await updateAction();
+            }
+            return;
+        }
+
+        isAnimatingDetails = true;
+
+        try
+        {
+            detailsExpanded = false;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(DetailsAnimationDuration);
+
+            if (updateAction != null)
+            {
+                await updateAction();
+            }
+
+            detailsExpanded = true;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(DetailsAnimationDuration);
+        }
+        finally
+        {
+            isAnimatingDetails = false;
+        }
+    }
+
+    private RecapMensuel? SelectedMonthRecap
+    {
+        get
+        {
+            if (!selectedMonthFilter.HasValue || recapByMonth == null)
+            {
+                return null;
+            }
+
+            var matches = recapByMonth
+                .Where(r => r.Month == selectedMonthFilter.Value);
+
+            if (selectedYear > 0)
+            {
+                matches = matches.Where(r => r.Year == selectedYear);
+            }
+
+            return matches
+                .OrderByDescending(r => r.Year)
+                .FirstOrDefault();
+        }
+    }
+
+    private string SelectedMonthLabel
+    {
+        get
+        {
+            if (!selectedMonthFilter.HasValue)
+            {
+                return "Aucun mois sélectionné";
+            }
+
+            var recap = SelectedMonthRecap;
+            var yearText = selectedYear > 0 ? selectedYear.ToString() : recap?.Year.ToString();
+
+            var label = GetMonthName(selectedMonthFilter.Value);
+            if (!string.IsNullOrWhiteSpace(yearText))
+            {
+                label = $"{label} {yearText}";
+            }
+
+            return label;
+        }
+    }
+
+    private int SelectedMonthTransactionCount => selectedMonthFilter.HasValue ? transactions.Count : 0;
+
+    private class RecapMensuel
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public decimal TotalDepenses { get; set; }
+        public decimal TotalGains { get; set; }
+    }
+}
+

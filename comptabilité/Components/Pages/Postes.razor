@@ -1,0 +1,207 @@
+@page "/postes"
+@using comptabilité.Models
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Postes de dépense</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestion des Postes de Dépense</h2>
+        <button class="btn btn-primary" @onclick="ShowAddModal">
+            <i class="bi bi-plus-circle"></i> Ajouter un poste
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (isLoading)
+            {
+                <div class="skeleton-list">
+                    @for (var i = 0; i < 2; i++)
+                    {
+                        <div class="skeleton-card">
+                            <div class="skeleton-line w-50"></div>
+                            <div class="skeleton-line w-75"></div>
+                            <div class="skeleton-chip"></div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (postes.Any())
+            {
+                <div class="inline-card-list">
+                    @foreach (var poste in postes)
+                    {
+                        <div class="inline-card inline-card--poste">
+                            <div class="inline-card-overview">
+                                <h5 class="inline-card-title">@poste.Nom</h5>
+                                <span class="inline-card-date">Poste de dépense</span>
+                                @if (!string.IsNullOrWhiteSpace(poste.Description))
+                                {
+                                    <p class="inline-card-description">@poste.Description</p>
+                                }
+                            </div>
+                            <div class="inline-card-details">
+                                <div class="inline-card-detail">
+                                    <span class="inline-card-detail-label">Association voiture</span>
+                                    <span class="inline-card-detail-value">
+                                        <span class="badge @(poste.PeutAvoirVoiture ? "bg-success" : "bg-secondary")">
+                                            @(poste.PeutAvoirVoiture ? "Peut être associée" : "Non associable")
+                                        </span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="inline-card-actions">
+                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditPoste(poste)" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeletePoste(poste)" title="Supprimer">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="inline-card-empty text-center text-muted">
+                    <i class="bi bi-stack display-6 mb-3"></i>
+                    <p class="fw-semibold mb-1">Aucun poste enregistré</p>
+                    <p class="mb-0">Ajoutez un poste pour organiser vos dépenses.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(currentPoste.Id == 0 ? "Ajouter" : "Modifier") un poste</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="currentPoste" OnValidSubmit="SavePoste">
+                        <DataAnnotationsValidator />
+                        <div class="mb-3">
+                            <label class="form-label">Nom *</label>
+                            <InputText class="form-control" @bind-Value="currentPoste.Nom" />
+                            <ValidationMessage For="@(() => currentPoste.Nom)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <InputTextArea class="form-control" @bind-Value="currentPoste.Description" rows="3" />
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" @bind="currentPoste.PeutAvoirVoiture" id="peutAvoirVoiture" />
+                                <label class="form-check-label" for="peutAvoirVoiture">
+                                    Ce poste peut être associé à une voiture
+                                </label>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Poste> postes = new();
+    private bool showModal = false;
+    private Poste currentPoste = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await LoadPostes();
+        isLoading = false;
+    }
+
+    private async Task LoadPostes()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        currentPoste = new Poste();
+        showModal = true;
+    }
+
+    private void EditPoste(Poste poste)
+    {
+        currentPoste = new Poste
+        {
+            Id = poste.Id,
+            Nom = poste.Nom,
+            Description = poste.Description,
+            PeutAvoirVoiture = poste.PeutAvoirVoiture
+        };
+        showModal = true;
+    }
+
+    private async Task SavePoste()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        if (currentPoste.Id == 0)
+        {
+            db.Postes.Add(currentPoste);
+        }
+        else
+        {
+            var existing = await db.Postes.FindAsync(currentPoste.Id);
+            if (existing != null)
+            {
+                existing.Nom = currentPoste.Nom;
+                existing.Description = currentPoste.Description;
+                existing.PeutAvoirVoiture = currentPoste.PeutAvoirVoiture;
+                db.Postes.Update(existing);
+            }
+        }
+
+        await db.SaveChangesAsync();
+        CloseModal();
+        await LoadPostes();
+    }
+
+    private async Task DeletePoste(Poste poste)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer le poste '{poste.Nom}' ?"))
+            return;
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        db.Postes.Remove(poste);
+        await db.SaveChangesAsync();
+        await LoadPostes();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentPoste = new();
+    }
+}
+

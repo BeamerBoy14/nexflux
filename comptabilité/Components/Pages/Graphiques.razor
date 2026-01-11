@@ -1,0 +1,635 @@
+@page "/graphiques"
+@using comptabilité.Models
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.JSInterop
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Graphiques - Dépenses et Gains</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Graphiques des Dépenses et Gains</h2>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Filtres</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Mode d'affichage</label>
+                    <select class="form-select" @bind="viewMode">
+                        <option value="Poste">Par Poste</option>
+                        <option value="Voiture">Par Voiture</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@(viewMode == "Poste" ? "Poste" : "Voiture") (optionnel)</label>
+                    @if (viewMode == "Poste")
+                    {
+                        <select class="form-select" @bind="selectedPosteId">
+                            <option value="">Tous les postes</option>
+                            @foreach (var poste in postes)
+                            {
+                                <option value="@poste.Id">@poste.Nom</option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <select class="form-select" @bind="selectedVoitureId">
+                            <option value="">Toutes les voitures</option>
+                            @foreach (var voiture in voitures)
+                            {
+                                <option value="@voiture.Id">@voiture.Nom</option>
+                            }
+                        </select>
+                    }
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date début</label>
+                    <InputDate class="form-control" @bind-Value="dateDebut" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Date fin</label>
+                    <InputDate class="form-control" @bind-Value="dateFin" />
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" @bind="groupByMonth" id="groupByMonth" />
+                        <label class="form-check-label" for="groupByMonth">
+                            Grouper par mois
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" @bind="showSoldeGlobal" id="showSoldeGlobal" />
+                        <label class="form-check-label" for="showSoldeGlobal">
+                            Afficher le solde global
+                        </label>
+                    </div>
+                    @if (showSoldeGlobal)
+                    {
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" @bind="soldeCumulatif" id="soldeCumulatif" />
+                            <label class="form-check-label" for="soldeCumulatif">
+                                Solde cumulatif (au lieu de par période)
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-primary btn-lg" @onclick="GenerateChart" disabled="@isGenerating">
+                        @if (isGenerating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <text>Génération en cours...</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-graph-up me-2"></i>
+                            <text>Générer le graphique</text>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">SOLDE NET (GAINS - DÉPENSES)</h5>
+            <div class="text-end">
+                <span class="badge bg-info">@(groupByMonth ? "PAR MOIS" : "PAR JOUR")</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="chart-container" style="position: relative; height: 450px;">
+                <canvas id="depensesChart" style="max-width: 100%;"></canvas>
+            </div>
+            @if (isGenerating && !chartData.Any())
+            {
+                <div class="text-center mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <p class="text-muted mt-2">Chargement des données...</p>
+                </div>
+            }
+            else if (!chartData.Any() && !isGenerating)
+            {
+                <p class="text-muted mt-3">Cliquez sur "Générer le graphique" pour afficher les données.</p>
+            }
+            @if (!isChartInitialized && chartData.Any())
+            {
+                <p class="text-info mt-2">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    Initialisation du graphique...
+                </p>
+            }
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="alert alert-info mt-3 mb-0" role="alert">
+                    @statusMessage
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Voiture> voitures = new();
+    private List<Poste> postes = new();
+    private string viewMode = "Poste";
+    private int? selectedVoitureId;
+    private int? selectedPosteId;
+    private DateTime dateDebut = new DateTime(2023, 8, 1);
+    private DateTime dateFin = DateTime.Now;
+    private bool groupByMonth = true;
+    private bool showSoldeGlobal = false;
+    private bool soldeCumulatif = false;
+    private List<ChartDataPoint> chartData = new();
+
+    private bool isChartInitialized = false;
+    private bool needsChartUpdate = false;
+    private bool isGenerating = false;
+    private string? statusMessage = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVoitures();
+        await LoadPostes();
+        // Ne pas charger les données automatiquement, attendre le clic sur le bouton
+    }
+
+    private async Task LoadPostes()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+    }
+
+    private async Task LoadVoitures()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        voitures = await db.Voitures.OrderBy(v => v.Nom).ToListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialiser le graphique au premier rendu mais ne pas charger de données
+            await Task.Delay(200);
+            await InitializeChart();
+            isChartInitialized = true;
+        }
+        
+        // Mettre à jour le graphique si nécessaire et si initialisé
+        if (isChartInitialized && needsChartUpdate)
+        {
+            await Task.Delay(100); // Petit délai pour s'assurer que le canvas est prêt
+            if (chartData.Any())
+            {
+                await UpdateChart();
+                statusMessage = $"Graphique généré avec succès ! ({chartData.Count} points de données)";
+            }
+            needsChartUpdate = false;
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateChart()
+    {
+        isGenerating = true;
+        statusMessage = "Chargement des données...";
+        StateHasChanged();
+
+        try
+        {
+            await LoadChartData();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Erreur lors du chargement: {ex.Message}";
+            isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadChartData()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        var query = db.Transactions
+            .Include(t => t.Voiture)
+            .Include(t => t.Poste)
+            .AsQueryable();
+
+        // Filtres selon le mode d'affichage
+        if (viewMode == "Poste")
+        {
+            // Pour les dépenses, on filtre par poste
+            query = query.Where(t => t.Type == "Dépense" && t.PosteId != null);
+            
+            if (selectedPosteId.HasValue)
+            {
+                query = query.Where(t => t.PosteId == selectedPosteId);
+            }
+        }
+        else if (viewMode == "Voiture")
+        {
+            // Pour les voitures, on prend les dépenses avec voiture
+            query = query.Where(t => t.Type == "Dépense" && t.VoitureId != null);
+            
+            if (selectedVoitureId.HasValue)
+            {
+                query = query.Where(t => t.VoitureId == selectedVoitureId);
+            }
+        }
+
+        // Filtres de date
+        if (dateDebut != default)
+        {
+            query = query.Where(t => t.Date >= dateDebut);
+        }
+
+        if (dateFin != default)
+        {
+            query = query.Where(t => t.Date <= dateFin);
+        }
+
+        var transactions = await query.OrderBy(t => t.Date).ToListAsync();
+
+        // Ajouter aussi les gains pour avoir le solde complet
+        var gainsQuery = db.Transactions
+            .Include(t => t.Client)
+            .Include(t => t.Voiture)
+            .Include(t => t.Poste)
+            .Where(t => t.Type == "Gain");
+
+        // Appliquer le filtre par poste si un poste est sélectionné
+        if (viewMode == "Poste" && selectedPosteId.HasValue)
+        {
+            gainsQuery = gainsQuery.Where(t => t.PosteId == selectedPosteId);
+        }
+
+        // Appliquer le filtre par voiture si une voiture est sélectionnée
+        if (viewMode == "Voiture" && selectedVoitureId.HasValue)
+        {
+            gainsQuery = gainsQuery.Where(t => t.VoitureId == selectedVoitureId);
+        }
+
+        if (dateDebut != default)
+        {
+            gainsQuery = gainsQuery.Where(t => t.Date >= dateDebut);
+        }
+
+        if (dateFin != default)
+        {
+            gainsQuery = gainsQuery.Where(t => t.Date <= dateFin);
+        }
+
+        var gains = await gainsQuery.OrderBy(t => t.Date).ToListAsync();
+
+        // Combiner et grouper selon le mode
+        if (groupByMonth)
+        {
+            if (viewMode == "Poste")
+            {
+                // Grouper par poste et mois
+                var depensesGrouped = transactions
+                    .GroupBy(t => new { Year = t.Date.Year, Month = t.Date.Month, Poste = t.Poste!.Nom })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = $"{GetMonthName(g.Key.Month)} {g.Key.Year}",
+                        Categorie = g.Key.Poste,
+                        Montant = -g.Sum(t => t.Montant), // Négatif pour les dépenses
+                        Date = new DateTime(g.Key.Year, g.Key.Month, 1)
+                    });
+
+                // Grouper les gains par poste et mois (ou "Gains généraux" si pas de poste)
+                var gainsGrouped = gains
+                    .GroupBy(t => new { Year = t.Date.Year, Month = t.Date.Month, Poste = t.Poste != null ? t.Poste.Nom : "Gains généraux" })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = $"{GetMonthName(g.Key.Month)} {g.Key.Year}",
+                        Categorie = g.Key.Poste,
+                        Montant = g.Sum(t => t.Montant), // Positif pour les gains
+                        Date = new DateTime(g.Key.Year, g.Key.Month, 1)
+                    });
+
+                chartData = depensesGrouped.Concat(gainsGrouped)
+                    .OrderBy(d => d.Date)
+                    .ThenBy(d => d.Categorie)
+                    .ToList();
+            }
+            else
+            {
+                // Grouper par voiture et mois
+                var depensesGrouped = transactions
+                    .GroupBy(t => new { Year = t.Date.Year, Month = t.Date.Month, Voiture = t.Voiture!.Nom })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = $"{GetMonthName(g.Key.Month)} {g.Key.Year}",
+                        Categorie = g.Key.Voiture,
+                        Montant = -g.Sum(t => t.Montant), // Négatif pour les dépenses
+                        Date = new DateTime(g.Key.Year, g.Key.Month, 1)
+                    });
+
+                // Grouper les gains par voiture et mois (gains sans voiture = "Gains généraux")
+                var gainsGrouped = gains
+                    .GroupBy(t => new { Year = t.Date.Year, Month = t.Date.Month, Voiture = t.Voiture != null ? t.Voiture.Nom : "Gains généraux" })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = $"{GetMonthName(g.Key.Month)} {g.Key.Year}",
+                        Categorie = g.Key.Voiture,
+                        Montant = g.Sum(t => t.Montant), // Positif pour les gains
+                        Date = new DateTime(g.Key.Year, g.Key.Month, 1)
+                    });
+
+                chartData = depensesGrouped.Concat(gainsGrouped)
+                    .OrderBy(d => d.Date)
+                    .ThenBy(d => d.Categorie)
+                    .ToList();
+            }
+        }
+        else
+        {
+            if (viewMode == "Poste")
+            {
+                var depensesGrouped = transactions
+                    .GroupBy(t => new { Date = t.Date.Date, Poste = t.Poste!.Nom })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = g.Key.Date.ToString("dd/MM/yyyy"),
+                        Categorie = g.Key.Poste,
+                        Montant = -g.Sum(t => t.Montant),
+                        Date = g.Key.Date
+                    });
+
+                // Grouper les gains par poste et date (ou "Gains généraux" si pas de poste)
+                var gainsGrouped = gains
+                    .GroupBy(t => new { Date = t.Date.Date, Poste = t.Poste != null ? t.Poste.Nom : "Gains généraux" })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = g.Key.Date.ToString("dd/MM/yyyy"),
+                        Categorie = g.Key.Poste,
+                        Montant = g.Sum(t => t.Montant),
+                        Date = g.Key.Date
+                    });
+
+                chartData = depensesGrouped.Concat(gainsGrouped)
+                    .OrderBy(d => d.Date)
+                    .ThenBy(d => d.Categorie)
+                    .ToList();
+            }
+            else
+            {
+                var depensesGrouped = transactions
+                    .GroupBy(t => new { Date = t.Date.Date, Voiture = t.Voiture!.Nom })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = g.Key.Date.ToString("dd/MM/yyyy"),
+                        Categorie = g.Key.Voiture,
+                        Montant = -g.Sum(t => t.Montant),
+                        Date = g.Key.Date
+                    });
+
+                // Grouper les gains par voiture et date (gains sans voiture = "Gains généraux")
+                var gainsGrouped = gains
+                    .GroupBy(t => new { Date = t.Date.Date, Voiture = t.Voiture != null ? t.Voiture.Nom : "Gains généraux" })
+                    .Select(g => new ChartDataPoint
+                    {
+                        Label = g.Key.Date.ToString("dd/MM/yyyy"),
+                        Categorie = g.Key.Voiture,
+                        Montant = g.Sum(t => t.Montant),
+                        Date = g.Key.Date
+                    });
+
+                chartData = depensesGrouped.Concat(gainsGrouped)
+                    .OrderBy(d => d.Date)
+                    .ThenBy(d => d.Categorie)
+                    .ToList();
+            }
+        }
+
+        // Marquer que le graphique doit être mis à jour
+        needsChartUpdate = true;
+        statusMessage = "Données chargées, préparation du graphique...";
+        StateHasChanged();
+    }
+
+    // Plus besoin de OnFilterChanged - tout est géré par le bouton
+
+    private async Task InitializeChart()
+    {
+        try
+        {
+            // Vérifier que Chart.js est chargé
+            var chartJsLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof Chart !== 'undefined'");
+            if (!chartJsLoaded)
+            {
+                Console.WriteLine("Chart.js n'est pas chargé - attente du chargement...");
+                // Attendre un peu et réessayer
+                await Task.Delay(500);
+                chartJsLoaded = await JSRuntime.InvokeAsync<bool>("eval", "typeof Chart !== 'undefined'");
+                if (!chartJsLoaded)
+                {
+                    Console.WriteLine("Chart.js n'est toujours pas chargé après l'attente");
+                    return;
+                }
+            }
+
+            await JSRuntime.InvokeVoidAsync("initializeDepensesChart");
+            Console.WriteLine("Graphique initialisé");
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Erreur JS: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Erreur opération: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateChart()
+    {
+        if (!chartData.Any())
+        {
+            Console.WriteLine("Aucune donnée à afficher");
+            return;
+        }
+
+        try
+        {
+            // Obtenir toutes les dates uniques pour les labels, triées par date
+            var labels = chartData
+                .GroupBy(d => d.Label)
+                .Select(g => new { Label = g.Key, Date = g.First().Date })
+                .OrderBy(x => x.Date)
+                .Select(x => x.Label)
+                .ToArray();
+
+            var datasets = new List<object>();
+
+            // Si l'option "Afficher le solde global" est activée, on affiche uniquement le solde global
+            if (showSoldeGlobal)
+            {
+                var soldePoints = new List<decimal>();
+
+                if (soldeCumulatif)
+                {
+                    // Mode cumulatif : additionner progressivement
+                    decimal soldeCumulatif = 0;
+                    foreach (var label in labels)
+                    {
+                        // Pour chaque date, additionner tous les montants (gains + dépenses)
+                        var soldePeriode = chartData
+                            .Where(d => d.Label == label)
+                            .Sum(d => d.Montant);
+                        
+                        // Ajouter au solde cumulatif
+                        soldeCumulatif += soldePeriode;
+                        soldePoints.Add(soldeCumulatif);
+                    }
+
+                    datasets.Add(new
+                    {
+                        label = "Solde Global Cumulatif",
+                        data = soldePoints.ToArray()
+                    });
+                }
+                else
+                {
+                    // Mode par période : solde de chaque période (comme les autres courbes)
+                    foreach (var label in labels)
+                    {
+                        // Pour chaque date, additionner tous les montants (gains + dépenses)
+                        var solde = chartData
+                            .Where(d => d.Label == label)
+                            .Sum(d => d.Montant);
+                        
+                        soldePoints.Add(solde);
+                    }
+
+                    datasets.Add(new
+                    {
+                        label = "Solde Global",
+                        data = soldePoints.ToArray()
+                    });
+                }
+            }
+            else
+            {
+                // Mode normal : afficher les courbes par catégorie
+                // Obtenir toutes les catégories sauf "Gains" (on va les intégrer dans chaque catégorie)
+                var categories = chartData
+                    .Where(d => d.Categorie != "Gains")
+                    .Select(d => d.Categorie)
+                    .Distinct()
+                    .ToList();
+
+                // Pour chaque catégorie (voiture ou poste), calculer son solde net
+                foreach (var categorie in categories)
+            {
+                var soldePoints = new List<decimal>();
+
+                foreach (var label in labels)
+                {
+                    // Calculer le solde net pour cette catégorie à cette date
+                    // Dépenses négatives pour cette catégorie + gains positifs (on prend une partie proportionnelle des gains)
+                    var depenses = chartData
+                        .Where(d => d.Label == label && d.Categorie == categorie)
+                        .Sum(d => d.Montant); // Déjà négatif
+
+                    // Calculer les gains totaux pour cette date
+                    var gainsTotaux = chartData
+                        .Where(d => d.Label == label && d.Categorie == "Gains")
+                        .Sum(d => d.Montant); // Positif
+
+                    // Calculer les dépenses totales pour cette date (toutes catégories)
+                    var depensesTotales = chartData
+                        .Where(d => d.Label == label && d.Categorie != "Gains")
+                        .Sum(d => Math.Abs(d.Montant)); // Valeur absolue car déjà négatif
+
+                    // Répartir les gains proportionnellement selon les dépenses de cette catégorie
+                    decimal partGains = 0;
+                    if (depensesTotales > 0)
+                    {
+                        var partDepensesCategorie = Math.Abs(depenses);
+                        partGains = gainsTotaux * (partDepensesCategorie / depensesTotales);
+                    }
+                    else if (gainsTotaux > 0 && categories.Count == 1)
+                    {
+                        // Si une seule catégorie, lui attribuer tous les gains
+                        partGains = gainsTotaux;
+                    }
+
+                    // Solde net = dépenses (négatif) + part des gains (positif)
+                    var solde = depenses + partGains;
+                    soldePoints.Add(solde);
+                }
+
+                datasets.Add(new
+                {
+                    label = $"{categorie} (Solde Net)",
+                    data = soldePoints.ToArray()
+                });
+            }
+
+            // S'il n'y a pas de catégories spécifiques mais qu'il y a des gains, créer une courbe globale
+            if (!categories.Any() && chartData.Any(d => d.Categorie == "Gains"))
+            {
+                var soldePoints = new List<decimal>();
+                foreach (var label in labels)
+                {
+                    var solde = chartData
+                        .Where(d => d.Label == label)
+                        .Sum(d => d.Montant);
+                    soldePoints.Add(solde);
+                }
+                datasets.Add(new
+                {
+                    label = "Solde Net Global",
+                    data = soldePoints.ToArray()
+                });
+            }
+            }
+
+            Console.WriteLine($"Mise à jour du graphique avec {labels.Length} labels et {datasets.Count} datasets (solde net par catégorie)");
+            await JSRuntime.InvokeVoidAsync("updateDepensesChart", labels, datasets.ToArray());
+        }
+        catch (JSException ex)
+        {
+            Console.WriteLine($"Erreur JS lors de la mise à jour: {ex.Message}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine($"Erreur opération lors de la mise à jour: {ex.Message}");
+        }
+    }
+
+    private string GetMonthName(int month)
+    {
+        return new DateTime(2000, month, 1).ToString("MMMM", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+    }
+
+    private class ChartDataPoint
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Categorie { get; set; } = string.Empty; // Peut être un poste, une voiture, ou "Gains"
+        public decimal Montant { get; set; } // Négatif pour dépenses, positif pour gains
+        public DateTime Date { get; set; }
+    }
+}
+

@@ -1,0 +1,240 @@
+﻿@page "/"
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Globalization
+@inject IServiceScopeFactory ServiceScopeFactory
+@rendermode InteractiveServer
+
+<PageTitle>Accueil - NEXFLUX</PageTitle>
+
+<div class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="gradient-text">NEX</span><span class="gradient-text-accent">FLUX</span>
+            </h1>
+            <p class="hero-subtitle">Votre solution complète de gestion financière et comptable</p>
+            <p class="hero-description">
+                Simplifiez la gestion de vos transactions, suivez vos dépenses et gains en temps réel,
+                et prenez des décisions éclairées grâce à des analyses visuelles détaillées.
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="stats-section">
+        <div class="row g-4">
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="stat-value">@totalTransactions</div>
+                    <div class="stat-label">Transactions</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="stat-value">@totalClients</div>
+                    <div class="stat-label">Clients</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-arrow-down-circle text-danger"></i>
+                    </div>
+                    <div class="stat-value text-danger">@totalDepenses.ToString("N2") €</div>
+                    <div class="stat-label">Total Dépenses</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-arrow-up-circle text-success"></i>
+                    </div>
+                    <div class="stat-value text-success">@totalGains.ToString("N2") €</div>
+                    <div class="stat-label">Total Gains</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-calendar-month text-danger"></i>
+                    </div>
+                    <div class="stat-value text-danger">-@coutMoyenMensuel.ToString("N2") €</div>
+                    <div class="stat-label">Coût Moyen Mensuel</div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-percent @(pourcentageDernierMois >= 100 ? "text-danger" : "text-success")"></i>
+                    </div>
+                    <div class="stat-value @(pourcentageDernierMois >= 100 ? "text-danger" : "text-success")">@pourcentageDernierMois.ToString("N1")%</div>
+                    <div class="stat-label">@(dernierMoisAnnee != null ? $"{dernierMoisAnnee} / Moyenne" : "Dernier Mois / Moyenne")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-section mt-5">
+        <h2 class="section-title">Fonctionnalités principales</h2>
+        <div class="row g-4 mt-3">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-receipt-cutoff"></i>
+                    </div>
+                    <h3>Gestion des Transactions</h3>
+                    <p>Enregistrez et suivez toutes vos dépenses et gains avec une interface intuitive et rapide.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h3>Analyses Visuelles</h3>
+                    <p>Visualisez vos données financières avec des graphiques interactifs et des rapports détaillés.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="bi bi-person-badge"></i>
+                    </div>
+                    <h3>Gestion Clients</h3>
+                    <p>Gérez votre portefeuille clients et suivez les transactions associées à chaque client.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-actions mt-5">
+        <h2 class="section-title">Accès rapide</h2>
+        <div class="row g-3 mt-3">
+            <div class="col-md-6">
+                <a href="/transactions" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                    <div class="quick-action-content">
+                        <h4>Transactions</h4>
+                        <p>Gérer vos dépenses et gains</p>
+                    </div>
+                    <i class="bi bi-arrow-right quick-action-arrow"></i>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/graphiques" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <div class="quick-action-content">
+                        <h4>Graphiques</h4>
+                        <p>Visualiser vos données financières</p>
+                    </div>
+                    <i class="bi bi-arrow-right quick-action-arrow"></i>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/clients" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <div class="quick-action-content">
+                        <h4>Clients</h4>
+                        <p>Gérer votre portefeuille clients</p>
+                    </div>
+                    <i class="bi bi-arrow-right quick-action-arrow"></i>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="/postes" class="quick-action-card">
+                    <div class="quick-action-icon">
+                        <i class="bi bi-folder"></i>
+                    </div>
+                    <div class="quick-action-content">
+                        <h4>Postes de Dépense</h4>
+                        <p>Organiser vos catégories de dépenses</p>
+                    </div>
+                    <i class="bi bi-arrow-right quick-action-arrow"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int totalTransactions = 0;
+    private int totalClients = 0;
+    private decimal totalDepenses = 0;
+    private decimal totalGains = 0;
+    private decimal coutMoyenMensuel = 0;
+    private decimal pourcentageDernierMois = 0;
+    private string? dernierMoisAnnee;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatistics();
+    }
+
+    private async Task LoadStatistics()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        totalTransactions = await db.Transactions.CountAsync();
+        totalClients = await db.Clients.CountAsync();
+        
+        totalDepenses = await db.Transactions
+            .Where(t => t.Type == "Dépense")
+            .SumAsync(t => t.Montant);
+        
+        totalGains = await db.Transactions
+            .Where(t => t.Type == "Gain")
+            .SumAsync(t => t.Montant);
+
+        // Calcul du coût moyen mensuel
+        var depenses = await db.Transactions
+            .Where(t => t.Type == "Dépense")
+            .Select(t => new { t.Date, t.Montant })
+            .ToListAsync();
+
+        var depensesParMois = depenses
+            .GroupBy(t => new { t.Date.Year, t.Date.Month })
+            .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(t => t.Montant) })
+            .ToList();
+
+        if (depensesParMois.Any())
+        {
+            coutMoyenMensuel = depensesParMois.Average(d => d.Total);
+        }
+
+        // Calcul du pourcentage du dernier mois par rapport à la moyenne
+        if (coutMoyenMensuel > 0 && depensesParMois.Any())
+        {
+            var dernierMois = depensesParMois
+                .OrderByDescending(d => d.Year)
+                .ThenByDescending(d => d.Month)
+                .FirstOrDefault();
+
+            if (dernierMois != null)
+            {
+                pourcentageDernierMois = (dernierMois.Total / coutMoyenMensuel) * 100;
+                
+                // Formatage du mois et de l'année
+                var date = new DateTime(dernierMois.Year, dernierMois.Month, 1);
+                var culture = CultureInfo.GetCultureInfo("fr-FR");
+                dernierMoisAnnee = date.ToString("MMMM yyyy", culture);
+                // Capitaliser la première lettre du mois
+                dernierMoisAnnee = char.ToUpper(dernierMoisAnnee[0]) + dernierMoisAnnee.Substring(1);
+            }
+        }
+    }
+}

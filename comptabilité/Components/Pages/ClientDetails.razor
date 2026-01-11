@@ -1,0 +1,412 @@
+@page "/clients/{clientId:int}"
+@using comptabilité.Models
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using System.Globalization
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Détails du client</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <button class="btn btn-outline-light" @onclick="NavigateBack">
+                <i class="bi bi-arrow-left"></i> Retour à la liste
+            </button>
+        </div>
+        @if (client is not null)
+        {
+            <div class="text-end">
+                <span class="text-muted">Client n°@client.Id</span>
+                <h2 class="mb-0">@FormatFullName(client)</h2>
+            </div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="row g-4">
+            <div class="col-12 col-xl-8">
+                <div class="skeleton-card">
+                    <div class="skeleton-line w-40"></div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-line w-60"></div>
+                        <div class="skeleton-line w-50"></div>
+                        <div class="skeleton-line w-45"></div>
+                    </div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-line w-55"></div>
+                        <div class="skeleton-line w-45"></div>
+                        <div class="skeleton-line w-50"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="skeleton-card">
+                    <div class="skeleton-line w-50"></div>
+                    <div class="skeleton-line w-60"></div>
+                    <div class="skeleton-line w-75"></div>
+                    <div class="skeleton-line w-45"></div>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="skeleton-card">
+                    <div class="skeleton-line w-35"></div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-line w-65"></div>
+                        <div class="skeleton-line w-55"></div>
+                    </div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-chip"></div>
+                        <div class="skeleton-chip"></div>
+                        <div class="skeleton-chip"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (client is null)
+    {
+        <div class="alert alert-danger">
+            Impossible de trouver ce client. Il a peut-être été supprimé.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Statistiques générales</h5>
+                        <span class="badge bg-info">Mise à jour @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-stats-grid">
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Nombre de locations</span>
+                                <span class="client-stat-value">@totalLocations</span>
+                                <span class="client-stat-sub">depuis @FormatDate(client.DateCreation)</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Jours de location</span>
+                                <span class="client-stat-value">@FormatDays(totalRentalDays)</span>
+                                <span class="client-stat-sub">calcul basé sur factures/transactions</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Revenus générés</span>
+                                <span class="client-stat-value text-success">@totalRevenue.ToString("N2") €</span>
+                                <span class="client-stat-sub">moyenne @FormatCurrency(averageRentalValue)</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Véhicules utilisés</span>
+                                <span class="client-stat-value">@distinctVehicles</span>
+                                <span class="client-stat-sub">transactions liées à une voiture</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Factures</span>
+                                <span class="client-stat-value">@totalInvoices</span>
+                                <span class="client-stat-sub">montant total @FormatCurrency(totalInvoiceAmount)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informations personnelles</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-info-grid">
+                            <div class="client-info-item">
+                                <span class="client-info-label">Nom complet</span>
+                                <span class="client-info-value">@FormatFullName(client)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Email</span>
+                                <span class="client-info-value">@client.Email</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Téléphone</span>
+                                <span class="client-info-value">@FormatValue(client.Telephone)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Adresse</span>
+                                <span class="client-info-value">@FormatAddress(client)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Numéro ID</span>
+                                <span class="client-info-value">@FormatValue(client.NumeroIdd)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Numéro permis</span>
+                                <span class="client-info-value">@FormatValue(client.NumeroPermis)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Date de naissance</span>
+                                <span class="client-info-value">@FormatDate(client.DateNaissance)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">ID Tel</span>
+                                <span class="client-info-value">@FormatValue(client.IdTel)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Créé le</span>
+                                <span class="client-info-value">@client.DateCreation.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-12 col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Dernières locations</h5>
+                        <span class="text-muted">@rentalTransactions.Count transaction(s)</span>
+                    </div>
+                    <div class="card-body">
+                        @if (rentalTransactions.Any())
+                        {
+                            <div class="month-details-list">
+                                @foreach (var transaction in rentalTransactions.Take(10))
+                                {
+                                    <div class="transaction-card @(transaction.Type == "Gain" ? "income" : "expense")">
+                                        <div class="transaction-card-header">
+                                            <div>
+                                                <span class="transaction-date">@transaction.Date.ToString("dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</span>
+                                                <h6 class="transaction-title">@(!string.IsNullOrWhiteSpace(transaction.Libelle) ? transaction.Libelle : "Sans libellé")</h6>
+                                            </div>
+                                            <div class="transaction-amount @(transaction.Type == "Gain" ? "text-success" : "text-danger")">
+                                                @(transaction.Type == "Gain" ? "+" : "-")@Math.Abs(transaction.Montant).ToString("N2") €
+                                            </div>
+                                        </div>
+                                        <div class="transaction-card-body">
+                                            <div class="transaction-badges">
+                                                <span class="badge type-badge @(transaction.Type == "Gain" ? "bg-success" : "bg-danger")">
+                                                    <i class="bi @(transaction.Type == "Gain" ? "bi-arrow-up-circle" : "bi-arrow-down-circle")"></i>
+                                                    @transaction.Type
+                                                </span>
+                                                @if (transaction.Voiture is not null)
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        <i class="bi bi-car-front-fill me-1"></i>@transaction.Voiture.Nom
+                                                    </span>
+                                                }
+                                                @if (transaction.Poste is not null)
+                                                {
+                                                    <span class="badge bg-info">
+                                                        <i class="bi bi-folder-fill me-1"></i>@transaction.Poste.Nom
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrWhiteSpace(transaction.Description))
+                                            {
+                                                <p class="transaction-description">@transaction.Description</p>
+                                            }
+                                        </div>
+                                        <div class="transaction-card-footer">
+                                            <div class="transaction-meta">
+                                                Créée le @transaction.DateCreation.ToString("dd/MM/yyyy HH:mm")
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-inbox display-6 mb-3"></i>
+                                <p class="fw-semibold mb-1">Aucune location enregistrée</p>
+                                <p class="mb-0">Ajoutez une transaction de type « Gain » pour ce client.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Factures récentes</h5>
+                        <span class="text-muted">@factures.Count</span>
+                    </div>
+                    <div class="card-body">
+                        @if (factures.Any())
+                        {
+                            <div class="client-invoice-list">
+                                @foreach (var facture in factures.Take(6))
+                                {
+                                    <div class="client-invoice-item">
+                                        <div>
+                                            <span class="client-invoice-number">@facture.NumeroFacture</span>
+                                            <span class="client-invoice-date">@facture.DateFacture.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</span>
+                                        </div>
+                                        <div class="client-invoice-meta">
+                                            <span class="client-invoice-amount">@facture.MontantTTC.ToString("N2") €</span>
+                                            <span class="badge bg-secondary">@facture.Statut</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-receipt-cutoff display-6 mb-3"></i>
+                                <p class="fw-semibold mb-1">Aucune facture</p>
+                                <p class="mb-0">Créez une facture pour ce client afin de la voir ici.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int clientId { get; set; }
+
+    private Client? client;
+    private bool isLoading = true;
+    private List<Transaction> transactions = new();
+    private List<Transaction> rentalTransactions = new();
+    private List<Facture> factures = new();
+    private int totalLocations;
+    private decimal totalRentalDays;
+    private decimal totalRevenue;
+    private decimal averageRentalValue;
+    private int distinctVehicles;
+    private int totalInvoices;
+    private decimal totalInvoiceAmount;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadClientDetails();
+    }
+
+    private async Task LoadClientDetails()
+    {
+        isLoading = true;
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        client = await db.Clients.FirstOrDefaultAsync(c => c.Id == clientId);
+
+        if (client is null)
+        {
+            transactions.Clear();
+            rentalTransactions.Clear();
+            factures.Clear();
+            ResetStats();
+            isLoading = false;
+            return;
+        }
+
+        transactions = await db.Transactions
+            .Where(t => t.ClientId == clientId)
+            .Include(t => t.Poste)
+            .Include(t => t.Voiture)
+            .OrderByDescending(t => t.Date)
+            .ToListAsync();
+
+        rentalTransactions = transactions
+            .Where(t => string.Equals(t.Type, "Gain", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        factures = await db.Factures
+            .Where(f => f.ClientId == clientId)
+            .Include(f => f.LignesFacture)
+            .OrderByDescending(f => f.DateFacture)
+            .ToListAsync();
+
+        ComputeStats();
+
+        isLoading = false;
+    }
+
+    private void ComputeStats()
+    {
+        totalLocations = rentalTransactions.Count;
+        totalRevenue = rentalTransactions.Sum(t => t.Montant);
+        averageRentalValue = totalLocations > 0 ? totalRevenue / totalLocations : 0;
+        distinctVehicles = rentalTransactions
+            .Where(t => t.Voiture is not null)
+            .Select(t => t.Voiture!.Nom)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        totalInvoices = factures.Count;
+        totalInvoiceAmount = factures.Sum(f => f.MontantTTC);
+
+        var daysFromInvoices = factures.Sum(f => f.LignesFacture.Sum(l => l.Quantite));
+        if (daysFromInvoices > 0)
+        {
+            totalRentalDays = daysFromInvoices;
+        }
+        else
+        {
+            totalRentalDays = rentalTransactions
+                .Select(t => t.Date.Date)
+                .Distinct()
+                .Count();
+        }
+    }
+
+    private void ResetStats()
+    {
+        totalLocations = 0;
+        totalRevenue = 0;
+        averageRentalValue = 0;
+        distinctVehicles = 0;
+        totalInvoices = 0;
+        totalInvoiceAmount = 0;
+        totalRentalDays = 0;
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/clients");
+    }
+
+    private string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string FormatFullName(Client c) =>
+        string.IsNullOrWhiteSpace(c.Prenom)
+            ? c.Nom
+            : $"{c.Nom} {c.Prenom}";
+
+    private string FormatDate(DateTime? value) =>
+        value.HasValue
+            ? value.Value.ToString("dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
+            : "-";
+
+    private string FormatAddress(Client c)
+    {
+        var parts = new List<string?> { c.Adresse, c.CodePostal, c.Ville };
+        var filtered = parts.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+        return filtered.Any() ? string.Join(", ", filtered) : "-";
+    }
+
+    private string FormatDays(decimal value)
+    {
+        if (value == 0)
+        {
+            return "-";
+        }
+
+        return value % 1 == 0
+            ? string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N0} j", value)
+            : string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N1} j", value);
+    }
+
+    private string FormatCurrency(decimal value)
+        => string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N2} €", value);
+}

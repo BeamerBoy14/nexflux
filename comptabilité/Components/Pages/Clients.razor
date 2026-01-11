@@ -1,0 +1,358 @@
+@page "/clients"
+@using comptabilité.Models
+@using comptabilité.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Clients</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestion des Clients</h2>
+        <button class="btn btn-primary" @onclick="ShowAddModal">
+            <i class="bi bi-plus-circle"></i> Ajouter un client
+        </button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+        @if (isLoading)
+        {
+            <div class="skeleton-list">
+                @for (var i = 0; i < 3; i++)
+                {
+                    <div class="skeleton-card">
+                        <div class="skeleton-line w-40"></div>
+                        <div class="skeleton-line w-60"></div>
+                        <div class="skeleton-inline">
+                            <div class="skeleton-line w-100"></div>
+                            <div class="skeleton-line w-75"></div>
+                            <div class="skeleton-line w-50"></div>
+                        </div>
+                        <div class="skeleton-inline">
+                            <div class="skeleton-chip"></div>
+                            <div class="skeleton-chip"></div>
+                            <div class="skeleton-chip w-50"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else if (clients.Any())
+        {
+            <div class="inline-card-list">
+                @foreach (var client in clients)
+                {
+                    <div class="inline-card inline-card--client" @onclick="() => ViewDetails(client.Id)">
+                        <div class="inline-card-overview">
+                            <span class="inline-card-date">Client depuis @FormatCreationDate(client.DateCreation)</span>
+                            <h5 class="inline-card-title">@FormatFullName(client)</h5>
+                            <div class="inline-card-tags">
+                                @if (!string.IsNullOrWhiteSpace(client.Email))
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-envelope-fill me-1"></i>@client.Email
+                                    </span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(client.Telephone))
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="bi bi-telephone-fill me-1"></i>@client.Telephone
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="inline-card-details">
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">Numéro ID</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.NumeroIdd)</span>
+                            </div>
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">Numéro Permis</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.NumeroPermis)</span>
+                            </div>
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">Date de naissance</span>
+                                <span class="inline-card-detail-value">@FormatDate(client.DateNaissance)</span>
+                            </div>
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">ID Tel</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.IdTel)</span>
+                            </div>
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">Code postal</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.CodePostal)</span>
+                            </div>
+                            <div class="inline-card-detail">
+                                <span class="inline-card-detail-label">Ville</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.Ville)</span>
+                            </div>
+                            <div class="inline-card-detail inline-card-detail--full">
+                                <span class="inline-card-detail-label">Adresse</span>
+                                <span class="inline-card-detail-value">@FormatValue(client.Adresse)</span>
+                            </div>
+                        </div>
+                        <div class="inline-card-actions">
+                            <button class="btn btn-icon btn-outline-primary" @onclick="() => EditClient(client)" @onclick:stopPropagation="true" title="Modifier">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteClient(client)" @onclick:stopPropagation="true" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+            {
+                <div class="client-card-empty text-center text-muted">
+                    <i class="bi bi-people display-6 mb-3"></i>
+                    <p class="fw-semibold mb-1">Aucun client enregistré</p>
+                    <p class="mb-0">Ajoutez votre premier client pour commencer.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+@if (showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(currentClient.Id == 0 ? "Ajouter" : "Modifier") un client</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger mb-3" role="alert">
+                            @errorMessage
+                        </div>
+                    }
+                    <EditForm Model="currentClient" OnValidSubmit="SaveClient">
+                        <DataAnnotationsValidator />
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom *</label>
+                                <InputText class="form-control" @bind-Value="currentClient.Nom" />
+                                <ValidationMessage For="@(() => currentClient.Nom)" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Prénom</label>
+                                <InputText class="form-control" @bind-Value="currentClient.Prenom" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email *</label>
+                            <InputText type="email" class="form-control" @bind-Value="currentClient.Email" />
+                            <ValidationMessage For="@(() => currentClient.Email)" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Téléphone</label>
+                            <InputText class="form-control" @bind-Value="currentClient.Telephone" />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Numéro ID</label>
+                                <InputText class="form-control" @bind-Value="currentClient.NumeroIdd" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Numéro Permis</label>
+                                <InputText class="form-control" @bind-Value="currentClient.NumeroPermis" />
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date de Naissance</label>
+                                <InputDate class="form-control" @bind-Value="currentClient.DateNaissance" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ID Tel</label>
+                                <InputText class="form-control" @bind-Value="currentClient.IdTel" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Adresse</label>
+                            <InputText class="form-control" @bind-Value="currentClient.Adresse" />
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Code Postal</label>
+                                <InputText class="form-control" @bind-Value="currentClient.CodePostal" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ville</label>
+                                <InputText class="form-control" @bind-Value="currentClient.Ville" />
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
+                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Client> clients = new();
+    private bool showModal = false;
+    private Client currentClient = new();
+    private string? errorMessage = null;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await LoadClients();
+        isLoading = false;
+    }
+
+    private async Task LoadClients()
+    {
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        clients = await db.Clients
+            .OrderBy(c => string.IsNullOrWhiteSpace(c.IdTel) ? 1 : 0)
+            .ThenBy(c => c.IdTel)
+            .ThenBy(c => c.Nom)
+            .ThenBy(c => c.Prenom)
+            .ToListAsync();
+    }
+
+    private void ShowAddModal()
+    {
+        currentClient = new Client
+        {
+            DateCreation = DateTime.Now
+        };
+        errorMessage = null;
+        showModal = true;
+    }
+
+    private void EditClient(Client client)
+    {
+        currentClient = new Client
+        {
+            Id = client.Id,
+            Nom = client.Nom,
+            Prenom = client.Prenom,
+            Email = client.Email,
+            Telephone = client.Telephone,
+            Adresse = client.Adresse,
+            CodePostal = client.CodePostal,
+            Ville = client.Ville,
+            NumeroIdd = client.NumeroIdd,
+            NumeroPermis = client.NumeroPermis,
+            DateNaissance = client.DateNaissance,
+            IdTel = client.IdTel,
+            DateCreation = client.DateCreation
+        };
+        errorMessage = null;
+        showModal = true;
+    }
+
+    private async Task SaveClient()
+    {
+        errorMessage = null;
+        try
+        {
+            using var scope = ServiceScopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+            // S'assurer que DateCreation est défini pour les nouveaux clients
+            if (currentClient.Id == 0)
+            {
+                if (currentClient.DateCreation == default)
+                {
+                    currentClient.DateCreation = DateTime.Now;
+                }
+                db.Clients.Add(currentClient);
+            }
+            else
+            {
+                var existing = await db.Clients.FindAsync(currentClient.Id);
+                if (existing != null)
+                {
+                    existing.Nom = currentClient.Nom;
+                    existing.Prenom = currentClient.Prenom;
+                    existing.Email = currentClient.Email;
+                    existing.Telephone = currentClient.Telephone;
+                    existing.Adresse = currentClient.Adresse;
+                    existing.CodePostal = currentClient.CodePostal;
+                    existing.Ville = currentClient.Ville;
+                    existing.NumeroIdd = currentClient.NumeroIdd;
+                    existing.NumeroPermis = currentClient.NumeroPermis;
+                    existing.DateNaissance = currentClient.DateNaissance;
+                    existing.IdTel = currentClient.IdTel;
+                    db.Clients.Update(existing);
+                }
+            }
+
+            await db.SaveChangesAsync();
+            errorMessage = null;
+            CloseModal();
+            await LoadClients();
+        }
+        catch (Exception ex)
+        {
+            // Afficher l'erreur dans l'interface
+            errorMessage = $"Erreur lors de la sauvegarde : {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                errorMessage += $" ({ex.InnerException.Message})";
+            }
+            Console.WriteLine($"Erreur lors de la sauvegarde du client: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteClient(Client client)
+    {
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer le client '{client.Nom} {client.Prenom}' ?"))
+            return;
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+        db.Clients.Remove(client);
+        await db.SaveChangesAsync();
+        await LoadClients();
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentClient = new();
+        errorMessage = null;
+    }
+
+    private void ViewDetails(int clientId)
+    {
+        NavigationManager.NavigateTo($"/clients/{clientId}");
+    }
+
+    private string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string FormatDate(DateTime? value) => value.HasValue ? value.Value.ToString("dd/MM/yyyy") : "-";
+
+    private string FormatCreationDate(DateTime value) => value.ToString("dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
+
+    private string FormatFullName(Client client) =>
+        string.IsNullOrWhiteSpace(client.Prenom)
+            ? client.Nom
+            : $"{client.Nom} {client.Prenom}";
+}
+
