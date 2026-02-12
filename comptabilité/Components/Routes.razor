@@ -1,6 +1,27 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+@using comptabilité.Services
+@using Microsoft.AspNetCore.Components
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        @if (IsLoginOrErrorPage(routeData))
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        }
+        else
+        {
+            <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        }
     </Found>
 </Router>
+
+@code {
+    private bool IsLoginOrErrorPage(RouteData routeData)
+    {
+        var pageTypeName = routeData.PageType?.FullName ?? "";
+        return pageTypeName.Contains("Login") || pageTypeName.Contains("Error");
+    }
+}

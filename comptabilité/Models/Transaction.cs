@@ -35,6 +35,10 @@ public class Transaction : IValidatableObject
 
     public int? ReservationId { get; set; }
     public Reservation? Reservation { get; set; }
+
+    // Relation avec Utilisateur
+    public int? UtilisateurId { get; set; }
+    public Utilisateur? Utilisateur { get; set; }
     
     public DateTime DateCreation { get; set; } = DateTime.Now;
 

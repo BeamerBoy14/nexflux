@@ -1,6 +1,7 @@
 @page "/transactions"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
@@ -9,6 +10,7 @@
 @using System.Globalization
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Transactions - Récapitulatif des dépenses</PageTitle>
@@ -413,30 +415,69 @@
 
     private async Task LoadPostes()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            postes = new List<Poste>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+        postes = await db.Postes
+            .Where(p => p.UtilisateurId == userId.Value)
+            .OrderBy(p => p.Nom)
+            .ToListAsync();
     }
 
     private async Task LoadVoitures()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            voitures = new List<Voiture>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        voitures = await db.Voitures.OrderBy(v => v.Nom).ToListAsync();
+        voitures = await db.Voitures
+            .Where(v => v.UtilisateurId == userId.Value)
+            .OrderBy(v => v.Nom)
+            .ToListAsync();
     }
 
     private async Task LoadClients()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            clients = new List<Client>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        clients = await db.Clients.OrderBy(c => c.Nom).ThenBy(c => c.Prenom).ToListAsync();
+        clients = await db.Clients
+            .Where(c => c.UtilisateurId == userId.Value)
+            .OrderBy(c => c.Nom)
+            .ThenBy(c => c.Prenom)
+            .ToListAsync();
     }
 
     private async Task LoadReservations()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            reservations = new List<Reservation>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
         reservations = await db.Reservations
+            .Where(r => r.UtilisateurId == userId.Value)
             .Include(r => r.Client)
             .OrderByDescending(r => r.DateDebut)
             .ToListAsync();
@@ -496,10 +537,19 @@
 
     private async Task LoadTransactions()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            transactions = new List<Transaction>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
         
-        var query = db.Transactions.AsQueryable();
+        var query = db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value)
+            .AsQueryable();
 
         if (selectedMonthFilter.HasValue)
         {
@@ -528,10 +578,20 @@
 
     private async Task LoadRecap()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            recapByMonth = new List<RecapMensuel>();
+            await LoadTransactions();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
-        var query = db.Transactions.AsQueryable();
+        var query = db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value)
+            .AsQueryable();
 
         if (selectedYear > 0)
         {
@@ -626,8 +686,18 @@
         
         currentTransaction.VoitureId = selectedVoitureId;
 
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            statusMessage = "Vous devez être connecté pour enregistrer une transaction.";
+            StateHasChanged();
+            return;
+        }
+
         if (currentTransaction.Id == 0)
         {
+            // Nouvelle transaction : définir l'UtilisateurId
+            currentTransaction.UtilisateurId = userId.Value;
             db.Transactions.Add(currentTransaction);
         }
         else
@@ -635,6 +705,13 @@
             var existing = await db.Transactions.FindAsync(currentTransaction.Id);
             if (existing != null)
             {
+                // Vérifier que la transaction appartient à l'utilisateur connecté
+                if (existing.UtilisateurId != userId.Value)
+                {
+                    statusMessage = "Vous n'avez pas l'autorisation de modifier cette transaction.";
+                    StateHasChanged();
+                    return;
+                }
                 existing.Date = currentTransaction.Date;
                 existing.Montant = currentTransaction.Montant;
                 existing.Libelle = currentTransaction.Libelle;

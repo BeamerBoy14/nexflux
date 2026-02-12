@@ -1,11 +1,13 @@
 @page "/postes"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Postes de dépense</PageTitle>
@@ -137,9 +139,19 @@
 
     private async Task LoadPostes()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            postes = new List<Poste>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+        postes = await db.Postes
+            .Where(p => p.UtilisateurId == userId.Value)
+            .OrderBy(p => p.Nom)
+            .ToListAsync();
     }
 
     private void ShowAddModal()
@@ -162,11 +174,19 @@
 
     private async Task SavePoste()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
         if (currentPoste.Id == 0)
         {
+            // Nouveau poste : définir l'UtilisateurId
+            currentPoste.UtilisateurId = userId.Value;
             db.Postes.Add(currentPoste);
         }
         else
@@ -174,6 +194,11 @@
             var existing = await db.Postes.FindAsync(currentPoste.Id);
             if (existing != null)
             {
+                // Vérifier que le poste appartient à l'utilisateur connecté
+                if (existing.UtilisateurId != userId.Value)
+                {
+                    return; // Ne pas modifier si ce n'est pas le poste de l'utilisateur
+                }
                 existing.Nom = currentPoste.Nom;
                 existing.Description = currentPoste.Description;
                 existing.PeutAvoirVoiture = currentPoste.PeutAvoirVoiture;
@@ -191,8 +216,22 @@
         if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer le poste '{poste.Nom}' ?"))
             return;
 
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        // Vérifier que le poste appartient à l'utilisateur connecté
+        var existing = await db.Postes.FindAsync(poste.Id);
+        if (existing != null && existing.UtilisateurId != userId.Value)
+        {
+            return; // Ne pas supprimer si ce n'est pas le poste de l'utilisateur
+        }
+
         db.Postes.Remove(poste);
         await db.SaveChangesAsync();
         await LoadPostes();

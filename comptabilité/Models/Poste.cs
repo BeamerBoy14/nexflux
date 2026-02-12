@@ -16,6 +16,10 @@ public class Poste
 
     public DateTime DateCreation { get; set; } = DateTime.Now;
 
+    // Relation avec Utilisateur
+    public int? UtilisateurId { get; set; }
+    public Utilisateur? Utilisateur { get; set; }
+
     // Navigation properties
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 }

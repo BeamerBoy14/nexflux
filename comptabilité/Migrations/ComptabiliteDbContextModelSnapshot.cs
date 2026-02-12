@@ -38,10 +38,10 @@ namespace comptabilité.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<DateTime?>("DateNaissance")
+                    b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("DateCreation")
+                    b.Property<DateTime?>("DateNaissance")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
@@ -70,6 +70,9 @@ namespace comptabilité.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Ville")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -79,7 +82,9 @@ namespace comptabilité.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Clients", (string)null);
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Clients");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Facture", b =>
@@ -124,6 +129,9 @@ namespace comptabilité.Migrations
                     b.Property<decimal>("TauxTVA")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClientId");
@@ -131,7 +139,9 @@ namespace comptabilité.Migrations
                     b.HasIndex("NumeroFacture")
                         .IsUnique();
 
-                    b.ToTable("Factures", (string)null);
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Factures");
                 });
 
             modelBuilder.Entity("comptabilité.Models.LigneFacture", b =>
@@ -172,7 +182,7 @@ namespace comptabilité.Migrations
 
                     b.HasIndex("FactureId");
 
-                    b.ToTable("LignesFacture", (string)null);
+                    b.ToTable("LignesFacture");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Poste", b =>
@@ -197,12 +207,17 @@ namespace comptabilité.Migrations
                     b.Property<bool>("PeutAvoirVoiture")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Nom")
                         .IsUnique();
 
-                    b.ToTable("Postes", (string)null);
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Postes");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Reservation", b =>
@@ -234,11 +249,16 @@ namespace comptabilité.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("Reservations", (string)null);
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Reservations");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Transaction", b =>
@@ -280,6 +300,9 @@ namespace comptabilité.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("VoitureId")
                         .HasColumnType("int");
 
@@ -293,9 +316,54 @@ namespace comptabilité.Migrations
 
                     b.HasIndex("ReservationId");
 
+                    b.HasIndex("UtilisateurId");
+
                     b.HasIndex("VoitureId");
 
-                    b.ToTable("Transactions", (string)null);
+                    b.ToTable("Transactions");
+                });
+
+            modelBuilder.Entity("comptabilité.Models.Utilisateur", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DerniereConnexion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("EstActif")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MotDePasseHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("NomComplet")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomUtilisateur")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NomUtilisateur")
+                        .IsUnique();
+
+                    b.ToTable("Utilisateurs");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Voiture", b =>
@@ -321,9 +389,24 @@ namespace comptabilité.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("UtilisateurId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
-                    b.ToTable("Voitures", (string)null);
+                    b.HasIndex("UtilisateurId");
+
+                    b.ToTable("Voitures");
+                });
+
+            modelBuilder.Entity("comptabilité.Models.Client", b =>
+                {
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Clients")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Utilisateur");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Facture", b =>
@@ -334,7 +417,14 @@ namespace comptabilité.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Factures")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Client");
+
+                    b.Navigation("Utilisateur");
                 });
 
             modelBuilder.Entity("comptabilité.Models.LigneFacture", b =>
@@ -348,15 +438,32 @@ namespace comptabilité.Migrations
                     b.Navigation("Facture");
                 });
 
+            modelBuilder.Entity("comptabilité.Models.Poste", b =>
+                {
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Postes")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Utilisateur");
+                });
+
             modelBuilder.Entity("comptabilité.Models.Reservation", b =>
                 {
                     b.HasOne("comptabilité.Models.Client", "Client")
                         .WithMany("Reservations")
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Reservations")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Client");
+
+                    b.Navigation("Utilisateur");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Transaction", b =>
@@ -376,6 +483,11 @@ namespace comptabilité.Migrations
                         .HasForeignKey("ReservationId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Transactions")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("comptabilité.Models.Voiture", "Voiture")
                         .WithMany("Transactions")
                         .HasForeignKey("VoitureId")
@@ -387,7 +499,19 @@ namespace comptabilité.Migrations
 
                     b.Navigation("Reservation");
 
+                    b.Navigation("Utilisateur");
+
                     b.Navigation("Voiture");
+                });
+
+            modelBuilder.Entity("comptabilité.Models.Voiture", b =>
+                {
+                    b.HasOne("comptabilité.Models.Utilisateur", "Utilisateur")
+                        .WithMany("Voitures")
+                        .HasForeignKey("UtilisateurId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Utilisateur");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Client", b =>
@@ -412,6 +536,21 @@ namespace comptabilité.Migrations
             modelBuilder.Entity("comptabilité.Models.Reservation", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("comptabilité.Models.Utilisateur", b =>
+                {
+                    b.Navigation("Clients");
+
+                    b.Navigation("Factures");
+
+                    b.Navigation("Postes");
+
+                    b.Navigation("Reservations");
+
+                    b.Navigation("Transactions");
+
+                    b.Navigation("Voitures");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Voiture", b =>

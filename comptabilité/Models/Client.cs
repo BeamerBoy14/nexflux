@@ -16,6 +16,10 @@ public class Client
     public string? IdTel { get; set; }
     public DateTime DateCreation { get; set; } = DateTime.Now;
 
+    // Relation avec Utilisateur
+    public int? UtilisateurId { get; set; }
+    public Utilisateur? Utilisateur { get; set; }
+
     // Navigation properties
     public ICollection<Facture> Factures { get; set; } = new List<Facture>();
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

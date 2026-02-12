@@ -1,12 +1,22 @@
 ﻿@page "/"
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
+@using Microsoft.AspNetCore.Components
 @inject IServiceScopeFactory ServiceScopeFactory
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
 
 <PageTitle>Accueil - NEXFLUX</PageTitle>
 
+@if (!AuthService.EstConnecte())
+{
+    <div></div>
+}
+else
+{
 <div class="hero-section">
     <div class="container">
         <div class="hero-content">
@@ -25,7 +35,7 @@
 <div class="container mt-5">
     <div class="stats-section">
         <div class="row g-4">
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-cash-stack"></i>
@@ -34,7 +44,7 @@
                     <div class="stat-label">Transactions</div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-people"></i>
@@ -43,7 +53,7 @@
                     <div class="stat-label">Clients</div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-arrow-down-circle text-danger"></i>
@@ -52,7 +62,7 @@
                     <div class="stat-label">Total Dépenses</div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-arrow-up-circle text-success"></i>
@@ -61,7 +71,7 @@
                     <div class="stat-label">Total Gains</div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-calendar-month text-danger"></i>
@@ -70,7 +80,7 @@
                     <div class="stat-label">Coût Moyen Mensuel</div>
                 </div>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="bi bi-percent @(pourcentageDernierMois >= 100 ? "text-danger" : "text-success")"></i>
@@ -169,6 +179,7 @@
         </div>
     </div>
 </div>
+}
 
 @code {
     private int totalTransactions = 0;
@@ -181,28 +192,51 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Vérifier l'authentification immédiatement
+        // Les cookies définis côté serveur dans AuthService.AuthentifierAsync() devraient être disponibles
+        if (!AuthService.EstConnecte())
+        {
+            NavigationManager.NavigateTo("/login", forceLoad: true);
+            return;
+        }
         await LoadStatistics();
     }
 
     private async Task LoadStatistics()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            totalTransactions = 0;
+            totalClients = 0;
+            totalDepenses = 0;
+            totalGains = 0;
+            coutMoyenMensuel = 0;
+            pourcentageDernierMois = 0;
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
-        totalTransactions = await db.Transactions.CountAsync();
-        totalClients = await db.Clients.CountAsync();
+        totalTransactions = await db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value)
+            .CountAsync();
+        totalClients = await db.Clients
+            .Where(c => c.UtilisateurId == userId.Value)
+            .CountAsync();
         
         totalDepenses = await db.Transactions
-            .Where(t => t.Type == "Dépense")
+            .Where(t => t.UtilisateurId == userId.Value && t.Type == "Dépense")
             .SumAsync(t => t.Montant);
         
         totalGains = await db.Transactions
-            .Where(t => t.Type == "Gain")
+            .Where(t => t.UtilisateurId == userId.Value && t.Type == "Gain")
             .SumAsync(t => t.Montant);
 
         // Calcul du coût moyen mensuel
         var depenses = await db.Transactions
-            .Where(t => t.Type == "Dépense")
+            .Where(t => t.UtilisateurId == userId.Value && t.Type == "Dépense")
             .Select(t => new { t.Date, t.Montant })
             .ToListAsync();
 

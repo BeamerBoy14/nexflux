@@ -1,0 +1,207 @@
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 2rem;
+    background: linear-gradient(180deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
+}
+
+.login-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    z-index: 0;
+}
+
+/* Cartes vertes animées */
+.floating-card {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.15));
+    border: 2px solid rgba(34, 197, 94, 0.3);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.2);
+    animation: float 20s ease-in-out infinite;
+}
+
+.floating-card-1 {
+    top: 10%;
+    left: 5%;
+    animation-delay: 0s;
+    animation-duration: 18s;
+}
+
+.floating-card-2 {
+    top: 60%;
+    right: 10%;
+    animation-delay: -4s;
+    animation-duration: 22s;
+    width: 150px;
+    height: 150px;
+}
+
+.floating-card-3 {
+    bottom: 15%;
+    left: 15%;
+    animation-delay: -8s;
+    animation-duration: 25s;
+    width: 180px;
+    height: 180px;
+}
+
+.floating-card-4 {
+    top: 30%;
+    right: 20%;
+    animation-delay: -12s;
+    animation-duration: 20s;
+    width: 120px;
+    height: 120px;
+}
+
+.floating-card-5 {
+    bottom: 30%;
+    right: 5%;
+    animation-delay: -16s;
+    animation-duration: 24s;
+    width: 160px;
+    height: 160px;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+        transform: translate(30px, -40px) rotate(5deg);
+    }
+    50% {
+        transform: translate(-20px, -60px) rotate(-5deg);
+    }
+    75% {
+        transform: translate(40px, -30px) rotate(3deg);
+    }
+}
+
+.login-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 450px;
+}
+
+.login-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    animation: fadeInUp 0.6s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-header {
+    background: linear-gradient(135deg, rgba(0, 0, 255, 0.2), rgba(0, 204, 255, 0.2));
+    border-bottom: 1px solid rgba(0, 204, 255, 0.2);
+    padding: 3rem 2rem 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.login-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue-cyan), var(--blue-electric));
+    box-shadow: 0 0 20px rgba(0, 204, 255, 0.6);
+}
+
+.login-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    font-weight: 900;
+    margin: 0 0 0.5rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+}
+
+.login-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 500;
+}
+
+.login-body {
+    padding: 2.5rem 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group:last-of-type {
+    margin-bottom: 2rem;
+}
+
+.login-footer {
+    padding: 1.5rem 2rem;
+    text-align: center;
+    border-top: 1px solid rgba(0, 204, 255, 0.1);
+    background: rgba(0, 0, 20, 0.3);
+}
+
+.login-footer p {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.me-2 {
+    margin-right: 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .login-container {
+        padding: 1rem;
+    }
+
+    .login-title {
+        font-size: 2rem;
+    }
+
+    .login-body {
+        padding: 2rem 1.5rem;
+    }
+
+    .floating-card {
+        width: 120px;
+        height: 120px;
+    }
+}

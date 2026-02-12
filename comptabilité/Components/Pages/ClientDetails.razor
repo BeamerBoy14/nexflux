@@ -1,10 +1,12 @@
 @page "/clients/{clientId:int}"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject NavigationManager NavigationManager
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Détails du client</PageTitle>
@@ -295,10 +297,23 @@
     {
         isLoading = true;
 
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            client = null;
+            transactions.Clear();
+            rentalTransactions.Clear();
+            factures.Clear();
+            ResetStats();
+            isLoading = false;
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
-        client = await db.Clients.FirstOrDefaultAsync(c => c.Id == clientId);
+        client = await db.Clients
+            .FirstOrDefaultAsync(c => c.Id == clientId && c.UtilisateurId == userId.Value);
 
         if (client is null)
         {
@@ -311,7 +326,7 @@
         }
 
         transactions = await db.Transactions
-            .Where(t => t.ClientId == clientId)
+            .Where(t => t.UtilisateurId == userId.Value && t.ClientId == clientId)
             .Include(t => t.Poste)
             .Include(t => t.Voiture)
             .OrderByDescending(t => t.Date)
@@ -322,7 +337,7 @@
             .ToList();
 
         factures = await db.Factures
-            .Where(f => f.ClientId == clientId)
+            .Where(f => f.UtilisateurId == userId.Value && f.ClientId == clientId)
             .Include(f => f.LignesFacture)
             .OrderByDescending(f => f.DateFacture)
             .ToListAsync();

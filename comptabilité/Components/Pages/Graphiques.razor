@@ -1,10 +1,12 @@
 @page "/graphiques"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.JSInterop
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Graphiques - Dépenses et Gains</PageTitle>
@@ -169,16 +171,36 @@
 
     private async Task LoadPostes()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            postes = new List<Poste>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        postes = await db.Postes.OrderBy(p => p.Nom).ToListAsync();
+        postes = await db.Postes
+            .Where(p => p.UtilisateurId == userId.Value)
+            .OrderBy(p => p.Nom)
+            .ToListAsync();
     }
 
     private async Task LoadVoitures()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            voitures = new List<Voiture>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        voitures = await db.Voitures.OrderBy(v => v.Nom).ToListAsync();
+        voitures = await db.Voitures
+            .Where(v => v.UtilisateurId == userId.Value)
+            .OrderBy(v => v.Nom)
+            .ToListAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -226,10 +248,18 @@
 
     private async Task LoadChartData()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            chartData = new List<ChartDataPoint>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
         var query = db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value)
             .Include(t => t.Voiture)
             .Include(t => t.Poste)
             .AsQueryable();
@@ -271,6 +301,7 @@
 
         // Ajouter aussi les gains pour avoir le solde complet
         var gainsQuery = db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value)
             .Include(t => t.Client)
             .Include(t => t.Voiture)
             .Include(t => t.Poste)

@@ -1,6 +1,7 @@
 @page "/reservations"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Globalization
@@ -9,6 +10,7 @@
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Réservations</PageTitle>
@@ -159,7 +161,7 @@
                         @if (pastReservations.Any())
                         {
                             <div class="reservation-list">
-                                @foreach (var reservation in pastReservations)
+                                @foreach (var reservation in displayedPastReservations)
                                 {
                                     <div class="reservation-card reservation-card--past" @onclick="() => ViewReservationClient(reservation.ClientId)">
                                         <div class="reservation-card-header">
@@ -199,6 +201,27 @@
                                     </div>
                                 }
                             </div>
+                            
+                            @if (totalPages > 1)
+                            {
+                                <div class="d-flex justify-content-between align-items-center mt-4">
+                                    <div>
+                                        <span class="text-muted">Page @currentPage sur @totalPages (@pastReservations.Count réservation(s) passée(s))</span>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <label class="form-label mb-0">Page :</label>
+                                        <select class="form-select form-select-sm" 
+                                                style="width: auto; min-width: 100px;" 
+                                                @onchange="OnPageChanged"
+                                                value="@currentPage">
+                                            @for (int i = 1; i <= totalPages; i++)
+                                            {
+                                                <option value="@i">Page @i</option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+                            }
                         }
                         else
                         {
@@ -330,11 +353,15 @@
     private List<Reservation> reservations = new();
     private List<Reservation> upcomingReservations = new();
     private List<Reservation> pastReservations = new();
+    private List<Reservation> displayedPastReservations = new();
     private List<Client> clients = new();
     private bool isLoading = true;
     private decimal totalRevenue;
     private int totalTransactions;
     private decimal totalDays;
+    private int currentPage = 1;
+    private int itemsPerPage = 3;
+    private int totalPages = 1;
     private bool showReservationModal;
     private bool isSavingReservation;
     private string? reservationError;
@@ -358,14 +385,23 @@
         isLoading = true;
         await LoadClients();
         await LoadReservations();
+        StateHasChanged();
         isLoading = false;
     }
 
     private async Task LoadClients()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            clients = new List<Client>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
         clients = await db.Clients
+            .Where(c => c.UtilisateurId == userId.Value)
             .OrderBy(c => c.Nom)
             .ThenBy(c => c.Prenom)
             .ToListAsync();
@@ -373,10 +409,23 @@
 
     private async Task LoadReservations()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            reservations = new List<Reservation>();
+            upcomingReservations = new List<Reservation>();
+            pastReservations = new List<Reservation>();
+            totalRevenue = 0;
+            totalTransactions = 0;
+            totalDays = 0;
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
         var allReservations = await db.Reservations
+            .Where(r => r.UtilisateurId == userId.Value)
             .Include(r => r.Client)
             .Include(r => r.Transactions)
             .ThenInclude(t => t.Voiture)
@@ -396,9 +445,41 @@
             .OrderByDescending(r => r.DateDebut)
             .ToList();
 
+        UpdateDisplayedPastReservations();
+
         totalRevenue = reservations.Sum(r => CalculateAmount(r));
         totalTransactions = reservations.Sum(r => r.Transactions.Count);
         totalDays = reservations.Sum(r => CalculateDuration(r));
+    }
+    
+    private void UpdateDisplayedPastReservations()
+    {
+        totalPages = (int)Math.Ceiling((double)pastReservations.Count / itemsPerPage);
+        if (currentPage > totalPages && totalPages > 0)
+        {
+            currentPage = totalPages;
+        }
+        if (currentPage < 1)
+        {
+            currentPage = 1;
+        }
+        
+        var skip = (currentPage - 1) * itemsPerPage;
+        displayedPastReservations = pastReservations.Skip(skip).Take(itemsPerPage).ToList();
+    }
+    
+    private void GoToPage(int page)
+    {
+        currentPage = page;
+        UpdateDisplayedPastReservations();
+    }
+    
+    private void OnPageChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int page))
+        {
+            GoToPage(page);
+        }
     }
 
     private decimal CalculateAmount(Reservation reservation)
@@ -466,6 +547,14 @@
             using var scope = ServiceScopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
+            var userId = AuthService.GetUtilisateurId();
+            if (!userId.HasValue)
+            {
+                reservationError = "Vous devez être connecté pour enregistrer une réservation.";
+                isSavingReservation = false;
+                return;
+            }
+
             Reservation reservation;
             if (reservationBeingEdited == null)
             {
@@ -476,7 +565,8 @@
                     DateFin = newReservation.DateFin,
                     Statut = newReservation.Statut,
                     Notes = string.IsNullOrWhiteSpace(newReservation.Notes) ? null : newReservation.Notes.Trim(),
-                    DateCreation = DateTime.Now
+                    DateCreation = DateTime.Now,
+                    UtilisateurId = userId.Value
                 };
 
                 db.Reservations.Add(reservation);
@@ -487,6 +577,14 @@
                 reservation = await db.Reservations
                     .Include(r => r.Transactions)
                     .FirstAsync(r => r.Id == reservationBeingEdited.Id);
+
+                // Vérifier que la réservation appartient à l'utilisateur connecté
+                if (reservation.UtilisateurId != userId.Value)
+                {
+                    reservationError = "Vous n'avez pas l'autorisation de modifier cette réservation.";
+                    isSavingReservation = false;
+                    return;
+                }
 
                 reservation.ClientId = clientId;
                 reservation.DateDebut = newReservation.DateDebut;
@@ -523,6 +621,7 @@
 
             CloseReservationModal();
             await LoadReservations();
+        StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -550,7 +649,16 @@
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
-        var query = db.Transactions.Where(t => t.ClientId == parsedId);
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            transactionsForClient = new List<Transaction>();
+            isLoadingTransactions = false;
+            return;
+        }
+
+        var query = db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value && t.ClientId == parsedId);
 
         if (reservationBeingEdited?.Id != null)
         {
@@ -625,6 +733,12 @@
             return;
         }
 
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
@@ -632,9 +746,9 @@
             .Include(r => r.Transactions)
             .FirstOrDefaultAsync(r => r.Id == reservation.Id);
 
-        if (entity == null)
+        if (entity == null || entity.UtilisateurId != userId.Value)
         {
-            return;
+            return; // Ne pas supprimer si ce n'est pas la réservation de l'utilisateur
         }
 
         foreach (var transaction in entity.Transactions)
@@ -651,6 +765,7 @@
         }
 
         await LoadReservations();
+        StateHasChanged();
     }
 
     private string GetStatusBadge(string statut)

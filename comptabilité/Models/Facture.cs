@@ -17,6 +17,10 @@ public class Facture
     public int ClientId { get; set; }
     public Client Client { get; set; } = null!;
 
+    // Relation avec Utilisateur
+    public int? UtilisateurId { get; set; }
+    public Utilisateur? Utilisateur { get; set; }
+
     // Navigation properties
     public ICollection<LigneFacture> LignesFacture { get; set; } = new List<LigneFacture>();
 }

@@ -1,11 +1,13 @@
 @page "/voitures"
 @using comptabilité.Models
 @using comptabilité.Data
+@using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
+@inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Voitures</PageTitle>
@@ -129,9 +131,19 @@
 
     private async Task LoadVoitures()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            voitures = new List<Voiture>();
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        voitures = await db.Voitures.OrderBy(v => v.Nom).ToListAsync();
+        voitures = await db.Voitures
+            .Where(v => v.UtilisateurId == userId.Value)
+            .OrderBy(v => v.Nom)
+            .ToListAsync();
     }
 
     private void ShowAddModal()
@@ -154,11 +166,19 @@
 
     private async Task SaveVoiture()
     {
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
         if (currentVoiture.Id == 0)
         {
+            // Nouvelle voiture : définir l'UtilisateurId
+            currentVoiture.UtilisateurId = userId.Value;
             db.Voitures.Add(currentVoiture);
         }
         else
@@ -166,6 +186,11 @@
             var existing = await db.Voitures.FindAsync(currentVoiture.Id);
             if (existing != null)
             {
+                // Vérifier que la voiture appartient à l'utilisateur connecté
+                if (existing.UtilisateurId != userId.Value)
+                {
+                    return; // Ne pas modifier si ce n'est pas la voiture de l'utilisateur
+                }
                 existing.Nom = currentVoiture.Nom;
                 existing.Immatriculation = currentVoiture.Immatriculation;
                 existing.Description = currentVoiture.Description;
@@ -183,8 +208,22 @@
         if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer la voiture '{voiture.Nom}' ?"))
             return;
 
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            return;
+        }
+
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        // Vérifier que la voiture appartient à l'utilisateur connecté
+        var existing = await db.Voitures.FindAsync(voiture.Id);
+        if (existing != null && existing.UtilisateurId != userId.Value)
+        {
+            return; // Ne pas supprimer si ce n'est pas la voiture de l'utilisateur
+        }
+
         db.Voitures.Remove(voiture);
         await db.SaveChangesAsync();
         await LoadVoitures();

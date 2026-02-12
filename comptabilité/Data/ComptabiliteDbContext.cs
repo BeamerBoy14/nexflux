@@ -10,6 +10,7 @@ public class ComptabiliteDbContext : DbContext
     {
     }
 
+    public DbSet<Utilisateur> Utilisateurs { get; set; }
     public DbSet<Client> Clients { get; set; }
     public DbSet<Facture> Factures { get; set; }
     public DbSet<LigneFacture> LignesFacture { get; set; }
@@ -21,6 +22,17 @@ public class ComptabiliteDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Configuration Utilisateur
+        modelBuilder.Entity<Utilisateur>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.NomUtilisateur).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.MotDePasseHash).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Email).HasMaxLength(100);
+            entity.Property(e => e.NomComplet).HasMaxLength(100);
+            entity.HasIndex(e => e.NomUtilisateur).IsUnique();
+        });
 
         // Configuration Client
         modelBuilder.Entity<Client>(entity =>
@@ -51,6 +63,11 @@ public class ComptabiliteDbContext : DbContext
                 .WithMany(c => c.Factures)
                 .HasForeignKey(e => e.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Factures)
+                .HasForeignKey(e => e.UtilisateurId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuration LigneFacture
@@ -76,6 +93,11 @@ public class ComptabiliteDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Nom).IsRequired().HasMaxLength(100);
             entity.HasIndex(e => e.Nom).IsUnique();
+
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Postes)
+                .HasForeignKey(e => e.UtilisateurId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuration Voiture
@@ -84,6 +106,11 @@ public class ComptabiliteDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Nom).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Immatriculation).HasMaxLength(20);
+
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Voitures)
+                .HasForeignKey(e => e.UtilisateurId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuration Reservation
@@ -97,6 +124,11 @@ public class ComptabiliteDbContext : DbContext
                 .WithMany(c => c.Reservations)
                 .HasForeignKey(e => e.ClientId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Reservations)
+                .HasForeignKey(e => e.UtilisateurId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // Configuration Transaction
@@ -126,6 +158,20 @@ public class ComptabiliteDbContext : DbContext
             entity.HasOne(e => e.Reservation)
                 .WithMany(r => r.Transactions)
                 .HasForeignKey(e => e.ReservationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Transactions)
+                .HasForeignKey(e => e.UtilisateurId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configuration des relations Utilisateur pour Client
+        modelBuilder.Entity<Client>(entity =>
+        {
+            entity.HasOne(e => e.Utilisateur)
+                .WithMany(u => u.Clients)
+                .HasForeignKey(e => e.UtilisateurId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
     }

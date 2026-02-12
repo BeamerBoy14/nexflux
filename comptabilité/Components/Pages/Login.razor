@@ -1,0 +1,156 @@
+@page "/login"
+@layout comptabilité.Components.Layout.LoginLayout
+@using comptabilité.Services
+@using Microsoft.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<PageTitle>Connexion - NexFlux</PageTitle>
+
+@if (AuthService.EstConnecte())
+{
+    <div></div>
+}
+else
+{
+<div class="login-container">
+    <div class="login-background">
+        <!-- Éléments décoratifs animés - Cartes vertes qui bougent -->
+        <div class="floating-card floating-card-1"></div>
+        <div class="floating-card floating-card-2"></div>
+        <div class="floating-card floating-card-3"></div>
+        <div class="floating-card floating-card-4"></div>
+        <div class="floating-card floating-card-5"></div>
+    </div>
+
+    <div class="login-content">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="login-title">
+                    <span class="gradient-text">Nex</span><span class="gradient-text-accent">Flux</span>
+                </h1>
+                <p class="login-subtitle">Application de Comptabilité</p>
+            </div>
+
+            <div class="login-body">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger" role="alert">
+                        @errorMessage
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success" role="alert">
+                        @successMessage
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label class="form-label" for="nomUtilisateur">Nom d'utilisateur</label>
+                    <InputText @bind-Value="username" 
+                               class="form-control" 
+                               id="nomUtilisateur"
+                               placeholder="TransEraLegend ou Entreprise2" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="motDePasse">Mot de passe</label>
+                    <input type="password" 
+                           @bind="password" 
+                           @bind:event="oninput"
+                           class="form-control" 
+                           id="motDePasse"
+                           placeholder="Votre mot de passe" />
+                </div>
+
+                <button type="button" 
+                        @onclick="HandleLogin" 
+                        class="btn btn-primary btn-lg w-100" 
+                        disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Connexion...</span>
+                    }
+                    else
+                    {
+                        <span>Se connecter</span>
+                    }
+                </button>
+            </div>
+
+            <div class="login-footer">
+                <p class="text-muted">Comptes de test:<br/>TransEraLegend / TransEra2024!<br/>Entreprise2 / Entreprise2024!</p>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+
+    protected override void OnInitialized()
+    {
+        // Nettoyer la session quand on arrive sur la page de login (déconnexion)
+        try
+        {
+            AuthService.Deconnecter();
+        }
+        catch
+        {
+            // Ignorer les erreurs de déconnexion
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        successMessage = null;
+        isLoading = true;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                errorMessage = "Veuillez remplir tous les champs.";
+                isLoading = false;
+                return;
+            }
+
+            var result = await AuthService.AuthentifierAsync(username, password);
+
+            if (result.Success)
+            {
+                successMessage = "Connexion réussie ! Redirection...";
+                await InvokeAsync(StateHasChanged);
+                
+                // Attendre un peu pour que l'UI se mette à jour
+                await Task.Delay(500);
+                
+                // Rediriger vers la page d'accueil
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = result.ErrorMessage ?? "Nom d'utilisateur ou mot de passe incorrect.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Erreur: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
