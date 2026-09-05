@@ -1,0 +1,675 @@
+================================================================================
+  GUIDE COMPLET - DÉPLOIEMENT BLAZOR (ASP.NET CORE) SUR HOSTINGER VPS AVEC DOCKER
+  Adapté depuis le guide Laravel — À réutiliser pour tout projet Blazor Server
+================================================================================
+
+Ce guide couvre tout le chemin : projet local → GitHub → Docker → Hostinger VPS
+avec déploiement automatique à chaque git push sur main.
+
+⚠️  CE GUIDE CIBLE BLAZOR SERVER (ASP.NET Core 8+)
+     Pour Blazor WebAssembly standalone (tout statique), voir la note en fin de guide.
+
+
+────────────────────────────────────────────────────────────────────────────────
+1. PRÉREQUIS
+────────────────────────────────────────────────────────────────────────────────
+
+  Côté local :
+  - .NET SDK 8.0+ installé (https://dotnet.microsoft.com/download)
+  - Git installé
+  - Docker Desktop installé (pour tester localement si besoin)
+  - Compte GitHub avec un repo pour le projet
+
+  Côté hébergement :
+  - VPS Hostinger (plan KVM2 minimum recommandé)
+  - Docker installé sur le VPS (Hostinger propose des VPS avec Docker pré-installé)
+  - Un nom de domaine pointant vers l'IP du VPS (record A dans le DNS)
+
+  Côté GitHub :
+  - GitHub Container Registry (GHCR) activé (gratuit, inclus dans GitHub)
+  - Actions activées sur le repo
+
+
+────────────────────────────────────────────────────────────────────────────────
+2. STRUCTURE DES FICHIERS DOCKER À CRÉER
+────────────────────────────────────────────────────────────────────────────────
+
+  Arborescence à ajouter à la racine du projet Blazor :
+
+  projet/
+  ├── Dockerfile
+  ├── docker-compose.yml           ← pour tester en local
+  ├── docker-compose.prod.yml      ← utilisé par GitHub Actions en prod
+  ├── docker/
+  │   └── nginx/
+  │       └── default.conf
+  └── .github/
+      └── workflows/
+          └── deploy.yml
+
+  DIFFÉRENCE vs LARAVEL :
+  - Pas de docker/php/ (on n'utilise plus PHP-FPM)
+  - Pas de entrypoint.sh complexe : ASP.NET Core démarre directement
+  - Pas de Vite/npm build séparé : Blazor gère ses assets via dotnet publish
+
+
+────────────────────────────────────────────────────────────────────────────────
+3. DOCKERFILE (multi-stage)
+────────────────────────────────────────────────────────────────────────────────
+
+  Le Dockerfile a 2 étapes (stages) :
+  - Stage 1 (build) : compile le projet avec le SDK .NET complet
+  - Stage 2 (app)   : image runtime légère ASP.NET Core (sans SDK)
+
+  Un 3ème stage Nginx optionnel peut servir de reverse proxy.
+
+  ── Dockerfile ──────────────────────────────────────────────────────────────
+
+  # Stage 1 : build avec le SDK complet
+  FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+  WORKDIR /src
+
+  # Copie le .csproj et restaure les dépendances (couche cachée)
+  COPY *.csproj ./
+  RUN dotnet restore
+
+  # Copie le reste et publie en mode Release
+  COPY . .
+  RUN dotnet publish -c Release -o /app/publish --no-restore
+
+  # Stage 2 : runtime léger (sans compilateur)
+  FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS app
+  WORKDIR /app
+  COPY --from=build /app/publish .
+  EXPOSE 8080
+  ENV ASPNETCORE_URLS=http://+:8080
+  ENTRYPOINT ["dotnet", "NOM_DU_PROJET.dll"]
+
+  ────────────────────────────────────────────────────────────────────────────
+
+  POURQUOI 2 STAGES (et non 3 comme Laravel) :
+  - Le SDK .NET pèse ~800 Mo, l'image runtime ~200 Mo → on sépare les deux
+  - Blazor Server sert ses propres fichiers statiques (wwwroot) via Kestrel :
+    pas besoin d'un container Nginx dédié aux assets
+  - Nginx reste utile comme reverse proxy (gestion SSL, headers, logs)
+
+  ⚠️  REMPLACER "NOM_DU_PROJET.dll" par le nom réel de l'assembly
+       (généralement le nom du fichier .csproj sans l'extension)
+
+
+────────────────────────────────────────────────────────────────────────────────
+4. DOCKER/NGINX/DEFAULT.CONF
+────────────────────────────────────────────────────────────────────────────────
+
+  Nginx agit ici en reverse proxy vers Kestrel (le serveur intégré d'ASP.NET).
+  IMPORTANT : Blazor Server utilise SignalR (WebSockets) → il faut les headers
+              Upgrade et Connection, sinon l'interface ne se connecte pas.
+
+  server {
+      listen 80;
+      server_name _;
+
+      location / {
+          proxy_pass         http://app:8080;
+          proxy_http_version 1.1;
+
+          # Headers requis pour SignalR / WebSockets (Blazor Server)
+          proxy_set_header   Upgrade    $http_upgrade;
+          proxy_set_header   Connection "upgrade";
+
+          proxy_set_header   Host              $host;
+          proxy_set_header   X-Real-IP         $remote_addr;
+          proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header   X-Forwarded-Proto $scheme;
+          proxy_cache_bypass $http_upgrade;
+
+          proxy_read_timeout 3600s;   # Long timeout pour les connexions SignalR
+          proxy_send_timeout 3600s;
+      }
+
+      client_max_body_size 50M;
+
+      # Sécurité : cache les fichiers sensibles
+      location ~ /\.(git|env|htaccess) {
+          deny all;
+      }
+  }
+
+  DIFFÉRENCE vs LARAVEL :
+  - Pas de "fastcgi_pass" : on proxy vers http://app:8080 (Kestrel)
+  - Les headers WebSocket (Upgrade/Connection) sont indispensables pour Blazor Server
+  - Le timeout élevé évite que Nginx coupe les connexions SignalR longues
+
+
+────────────────────────────────────────────────────────────────────────────────
+5. DOCKER-COMPOSE.PROD.YML
+────────────────────────────────────────────────────────────────────────────────
+
+  Ce fichier est utilisé directement par Hostinger pour lancer les conteneurs.
+  Il référence les images pré-buildées sur GHCR (pas de build local sur le VPS).
+
+  services:
+    app:
+      image: ghcr.io/TON_USER/TON_PROJET-app:latest
+      restart: unless-stopped
+      environment:
+        ASPNETCORE_ENVIRONMENT: Production
+        ASPNETCORE_URLS: "http://+:8080"
+        # Ajouter ici tes variables de config (ConnectionStrings, etc.)
+        # ConnectionStrings__Default: ${DB_CONNECTION_STRING}
+      volumes:
+        - app_data:/app/data       # Si ton app écrit des fichiers (uploads, etc.)
+      networks:
+        - backend
+
+    nginx:
+      image: nginx:1.27-alpine
+      restart: unless-stopped
+      volumes:
+        - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.monapp.rule=Host(`mondomaine.com`) || Host(`www.mondomaine.com`)"
+        - "traefik.http.routers.monapp.entrypoints=websecure"
+        - "traefik.http.routers.monapp.tls.certresolver=letsencrypt"
+        - "traefik.http.services.monapp.loadbalancer.server.port=80"
+      depends_on:
+        - app
+      networks:
+        - backend
+
+  volumes:
+    app_data:
+
+  networks:
+    backend:
+
+  DIFFÉRENCES vs LARAVEL :
+  - Variables d'env ASP.NET Core au lieu de Laravel (ASPNETCORE_ENVIRONMENT, etc.)
+  - Pour les chaînes de connexion : ConnectionStrings__NomDeLaConnexion=valeur
+    (le double underscore __ remplace le ":" dans appsettings.json)
+  - Si pas de base de données : supprimer la section volumes
+
+
+────────────────────────────────────────────────────────────────────────────────
+6. DOCKER-COMPOSE.YML (TEST LOCAL)
+────────────────────────────────────────────────────────────────────────────────
+
+  services:
+    app:
+      build:
+        context: .
+        target: app
+      environment:
+        ASPNETCORE_ENVIRONMENT: Development
+        ASPNETCORE_URLS: "http://+:8080"
+      ports:
+        - "8080:8080"
+      networks:
+        - backend
+
+    nginx:
+      image: nginx:1.27-alpine
+      volumes:
+        - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      ports:
+        - "80:80"
+      depends_on:
+        - app
+      networks:
+        - backend
+
+  networks:
+    backend:
+
+  Pour tester en local :
+    docker compose up --build
+  → Accéder sur http://localhost
+
+
+────────────────────────────────────────────────────────────────────────────────
+7. GITHUB ACTIONS — .GITHUB/WORKFLOWS/DEPLOY.YML
+────────────────────────────────────────────────────────────────────────────────
+
+  Ce fichier se déclenche automatiquement à chaque push sur la branche main.
+  Il fait 2 choses :
+    1. Build l'image Docker et la pousse sur GHCR
+    2. Déclenche le déploiement sur le VPS Hostinger
+
+  name: Deploy
+
+  on:
+    push:
+      branches: [main]
+
+  jobs:
+    build-push:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+        packages: write
+
+      steps:
+        - uses: actions/checkout@v4
+        - uses: docker/setup-buildx-action@v3
+
+        - name: Login to GHCR
+          uses: docker/login-action@v3
+          with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Build and push app (ASP.NET Core)
+          uses: docker/build-push-action@v6
+          with:
+            context: .
+            target: app
+            push: true
+            tags: ghcr.io/TON_USER/TON_PROJET-app:latest
+            cache-from: type=gha,scope=mon-app
+            cache-to: type=gha,mode=max,scope=mon-app
+
+    deploy:
+      runs-on: ubuntu-latest
+      needs: build-push
+
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Deploy to Hostinger VPS
+          uses: hostinger/deploy-on-vps@v2
+          with:
+            api-key: ${{ secrets.HOSTINGER_API_KEY }}
+            virtual-machine: ${{ vars.HOSTINGER_VM_ID }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            project-name: mon-projet
+            docker-compose-path: docker-compose.prod.yml
+            environment-variables: |
+              ASPNETCORE_ENVIRONMENT=Production
+              APP_URL=https://mondomaine.com
+
+  DIFFÉRENCE vs LARAVEL :
+  - Un seul image à builder (plus de séparation app/nginx avec PHP)
+  - Pas de secrets APP_KEY (ASP.NET Core gère autrement la protection des données)
+  - Si tu utilises Entity Framework : ajouter une étape pour les migrations
+    (voir section 8)
+
+
+────────────────────────────────────────────────────────────────────────────────
+8. MIGRATIONS ENTITY FRAMEWORK (si base de données)
+────────────────────────────────────────────────────────────────────────────────
+
+  Contrairement à Laravel (pas de base de données dans ce projet), si ton projet
+  Blazor utilise Entity Framework Core, les migrations se gèrent ainsi :
+
+  ── En local ────────────────────────────────────────────────────────────────
+
+    # Créer une migration
+    dotnet ef migrations add NomDeLaMigration
+
+    # Appliquer les migrations
+    dotnet ef database update
+
+  ── En production (via GitHub Actions) ─────────────────────────────────────
+
+    Ajouter une étape dans le job "deploy" :
+
+      - name: Run EF Migrations
+        run: |
+          docker compose -f docker-compose.prod.yml exec -T app \
+            dotnet NOM_DU_PROJET.dll --migrate-only
+        # Ou selon ton architecture : créer un job de migration séparé
+
+  ── Alternative : migrations au démarrage ───────────────────────────────────
+
+    Dans Program.cs, appliquer les migrations automatiquement au démarrage :
+
+      using (var scope = app.Services.CreateScope())
+      {
+          var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+          db.Database.Migrate();
+      }
+
+    ⚠️  Pratique pour les petits projets, risqué en production avec plusieurs
+         instances simultanées.
+
+  SI PAS DE BASE DE DONNÉES : ignorer toute cette section.
+
+
+────────────────────────────────────────────────────────────────────────────────
+9. TRAEFIK (REVERSE PROXY + HTTPS AUTOMATIQUE)
+────────────────────────────────────────────────────────────────────────────────
+
+  Identique au guide Laravel — Traefik ne sait pas si derrière c'est PHP ou .NET.
+  Il route juste le trafic HTTP/HTTPS vers le bon conteneur.
+
+  Sur Hostinger, Traefik est souvent pré-configuré. Si ce n'est pas le cas,
+  voici le docker-compose.traefik.yml à déployer UNE FOIS sur le VPS :
+
+  version: "3.8"
+  services:
+    traefik:
+      image: traefik:v3.0
+      restart: unless-stopped
+      command:
+        - "--api.insecure=false"
+        - "--providers.docker=true"
+        - "--providers.docker.exposedByDefault=false"
+        - "--entrypoints.web.address=:80"
+        - "--entrypoints.websecure.address=:443"
+        - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+        - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+        - "--certificatesresolvers.letsencrypt.acme.email=TON@EMAIL.COM"
+        - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+        - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+        - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        - "letsencrypt:/letsencrypt"
+      networks:
+        - backend
+
+  volumes:
+    letsencrypt:
+  networks:
+    backend:
+      external: true
+
+  ⚠️  IMPORTANT POUR BLAZOR SERVER + TRAEFIK :
+       SignalR nécessite que Traefik supporte les WebSockets.
+       Ajouter ce label au service nginx dans docker-compose.prod.yml :
+
+       - "traefik.http.middlewares.ws.headers.customrequestheaders.Upgrade=websocket"
+       - "traefik.http.middlewares.ws.headers.customrequestheaders.Connection=Upgrade"
+       - "traefik.http.routers.monapp.middlewares=ws"
+
+
+────────────────────────────────────────────────────────────────────────────────
+10. SECRETS ET VARIABLES GITHUB À CONFIGURER
+────────────────────────────────────────────────────────────────────────────────
+
+  Dans GitHub → repo → Settings → Secrets and variables → Actions :
+
+  SECRETS (valeurs sensibles) :
+  ┌─────────────────────────┬────────────────────────────────────────────────┐
+  │ Nom                     │ Valeur                                         │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ HOSTINGER_API_KEY       │ Clé API générée dans le panel Hostinger        │
+  │ DB_CONNECTION_STRING    │ Si tu as une BDD (optionnel)                   │
+  └─────────────────────────┴────────────────────────────────────────────────┘
+
+  VARIABLES (valeurs non sensibles) :
+  ┌─────────────────────────┬────────────────────────────────────────────────┐
+  │ Nom                     │ Valeur                                         │
+  ├─────────────────────────┼────────────────────────────────────────────────┤
+  │ HOSTINGER_VM_ID         │ L'ID de ta VM (visible dans le panel Hostinger)│
+  └─────────────────────────┴────────────────────────────────────────────────┘
+
+  DIFFÉRENCE vs LARAVEL :
+  - Pas besoin de APP_KEY (ASP.NET Core génère sa propre clé de protection)
+  - La Data Protection Key est stockée dans le volume app_data
+  - Pour les secrets ASP.NET, utiliser les variables d'env avec __ comme séparateur
+
+
+────────────────────────────────────────────────────────────────────────────────
+11. APPSETTINGS.JSON ET CONFIGURATION EN PROD
+────────────────────────────────────────────────────────────────────────────────
+
+  ASP.NET Core lit la config dans cet ordre (priorité croissante) :
+    appsettings.json → appsettings.Production.json → Variables d'environnement
+
+  Règle : mettre les valeurs génériques dans appsettings.json,
+          surcharger les valeurs sensibles via variables d'environnement Docker.
+
+  Exemple appsettings.json :
+  {
+    "Logging": {
+      "LogLevel": {
+        "Default": "Information",
+        "Microsoft.AspNetCore": "Warning"
+      }
+    },
+    "AllowedHosts": "*"
+  }
+
+  Pour passer une connexion DB via Docker :
+    environment:
+      ConnectionStrings__Default: "Server=db;Database=mabase;User=root;Password=xxx"
+
+  (le __ dans le nom de la variable correspond au : dans appsettings.json)
+
+
+────────────────────────────────────────────────────────────────────────────────
+12. .GITIGNORE — CE QU'IL FAUT ABSOLUMENT IGNORER
+────────────────────────────────────────────────────────────────────────────────
+
+  # .NET
+  bin/
+  obj/
+  *.user
+  .vs/
+  *.suo
+
+  # Fichiers publiés
+  publish/
+  out/
+
+  # Secrets locaux
+  appsettings.Development.json
+  appsettings.Local.json
+  secrets.json
+  *.pfx
+
+  # Médias locaux (ne pas committer dans Git)
+  wwwroot/uploads/
+  wwwroot/videos/
+
+  # Docker
+  .dockerignore   ← À créer aussi (voir section 13)
+
+  RÈGLE D'OR : ne jamais committer de fichier > 50 Mo dans Git.
+
+
+────────────────────────────────────────────────────────────────────────────────
+13. .DOCKERIGNORE (IMPORTANT POUR LA VITESSE DE BUILD)
+────────────────────────────────────────────────────────────────────────────────
+
+  Créer un fichier .dockerignore à la racine pour éviter de copier inutilement :
+
+  bin/
+  obj/
+  .vs/
+  .git/
+  docker/
+  .github/
+  **/*.md
+  wwwroot/uploads/
+  wwwroot/videos/
+
+  Sans .dockerignore, Docker copie tout le dossier bin/obj dans le contexte
+  de build → builds 5-10x plus lents.
+
+
+────────────────────────────────────────────────────────────────────────────────
+14. WORKFLOW QUOTIDIEN — COMMENT DÉPLOYER UNE MISE À JOUR
+────────────────────────────────────────────────────────────────────────────────
+
+  1. Faire ses modifications en local
+  2. Tester en local (dotnet run ou docker compose up)
+  3. git add <fichiers modifiés>
+  4. git commit -m "description du changement"
+  5. git push origin main
+
+  → GitHub Actions se déclenche automatiquement
+  → Build Docker (~3-6 min avec cache, ~8-12 min sans cache)
+  → Déploiement sur Hostinger (~1 min)
+  → Le site est mis à jour
+
+  Pour vérifier l'état du déploiement :
+    GitHub → repo → Actions → voir le workflow en cours
+
+  Commandes utiles en local :
+    dotnet run              ← démarre en mode développement
+    dotnet watch run        ← hot reload (Blazor recharge automatiquement)
+    dotnet publish -c Release -o ./publish   ← tester le build de prod
+
+
+────────────────────────────────────────────────────────────────────────────────
+15. COMMANDES UTILES EN PRODUCTION (sur le VPS via SSH)
+────────────────────────────────────────────────────────────────────────────────
+
+  # Voir les conteneurs qui tournent
+  docker ps
+
+  # Voir les logs en temps réel
+  docker compose logs -f
+
+  # Redémarrer l'app
+  docker compose restart app
+
+  # Voir les logs de l'app uniquement
+  docker compose logs -f app
+
+  # Mettre à jour manuellement les images (sans passer par GitHub Actions)
+  docker compose -f docker-compose.prod.yml pull
+  docker compose -f docker-compose.prod.yml up -d
+
+  # Entrer dans le conteneur (si besoin de debug)
+  docker compose exec app sh
+
+  # Lister les volumes et leur emplacement
+  docker volume ls
+  docker volume inspect NOM_DU_VOLUME
+
+
+────────────────────────────────────────────────────────────────────────────────
+16. ERREURS COURANTES BLAZOR + DOCKER
+────────────────────────────────────────────────────────────────────────────────
+
+  ❌ ERREUR 1 — L'interface Blazor se charge mais ne répond plus
+  ──────────────────────────────────────────────────────────────
+  Problème : Blazor Server ne fonctionne pas → SignalR ne se connecte pas.
+  Causes possibles :
+    - Les headers WebSocket manquent dans Nginx (Upgrade / Connection)
+    - Le proxy_read_timeout est trop court (Nginx coupe la connexion)
+    - Traefik n'a pas les middlewares WebSocket activés
+
+  Solution : vérifier la config Nginx (section 4) et les labels Traefik (section 9)
+
+  ❌ ERREUR 2 — "NOM_DU_PROJET.dll not found" au démarrage
+  ─────────────────────────────────────────────────────────
+  Problème : le nom du DLL dans ENTRYPOINT ne correspond pas au .csproj.
+  Solution : vérifier le nom exact du fichier .csproj :
+    ls /app   (dans le conteneur via docker compose exec app sh)
+  Ou lancer avec :
+    ENTRYPOINT ["sh", "-c", "dotnet *.dll"]
+
+  ❌ ERREUR 3 — Fichiers statiques (CSS/JS) non trouvés en prod
+  ─────────────────────────────────────────────────────────────
+  Problème : le dossier wwwroot n'est pas inclus dans le publish.
+  Solution : vérifier que le .csproj contient bien :
+    <ItemGroup>
+      <Content Include="wwwroot\**" CopyToPublishDirectory="Always" />
+    </ItemGroup>
+  Et que dotnet publish inclut les assets :
+    RUN dotnet publish -c Release -o /app/publish --no-restore
+
+  ❌ ERREUR 4 — L'app redémarre en boucle (CrashLoopBackOff)
+  ───────────────────────────────────────────────────────────
+  Problème : l'app plante au démarrage en production.
+  Diagnostic :
+    docker compose logs app
+  Causes fréquentes :
+    - Variable d'env manquante (ConnectionString, clé API, etc.)
+    - Migrations EF non appliquées
+    - ASPNETCORE_URLS non défini → port mismatch
+  Solution : vérifier les logs, corriger la variable manquante, redéployer.
+
+  ❌ ERREUR 5 — Hot reload ne marche pas en conteneur
+  ────────────────────────────────────────────────────
+  Normal : le hot reload (dotnet watch) n'est pas conçu pour la production.
+  Utiliser dotnet watch uniquement en local (hors Docker).
+  En Docker local : reconstruire l'image à chaque changement :
+    docker compose up --build
+
+  ❌ ERREUR 6 — La Data Protection Key est perdue à chaque redémarrage
+  ───────────────────────────────────────────────────────────────────────
+  Problème : ASP.NET Core génère des clés de chiffrement au démarrage.
+             Si elles ne sont pas persistées, les sessions/cookies sont invalidés
+             à chaque redémarrage du conteneur.
+  Solution : monter un volume pour les clés :
+    volumes:
+      - app_data:/app/data
+  Et configurer la Data Protection dans Program.cs :
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/app/data/keys"));
+
+
+────────────────────────────────────────────────────────────────────────────────
+17. NOTE — BLAZOR WEBASSEMBLY STANDALONE (tout statique)
+────────────────────────────────────────────────────────────────────────────────
+
+  Si ton projet est Blazor WebAssembly pur (pas de serveur ASP.NET Core),
+  le déploiement est plus simple :
+
+  Dockerfile (1 seul stage) :
+    FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+    WORKDIR /src
+    COPY . .
+    RUN dotnet publish -c Release -o /app/publish
+
+    FROM nginx:1.27-alpine
+    COPY --from=build /app/publish/wwwroot /usr/share/nginx/html
+    COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+    EXPOSE 80
+
+  Config Nginx spéciale WASM (fallback vers index.html pour le routing) :
+    server {
+        listen 80;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+
+        # Compression WASM
+        location ~ \.wasm$ {
+            gzip_static on;
+            add_header Content-Type application/wasm;
+        }
+    }
+
+  Avantages WASM : aucun serveur nécessaire, hébergeable sur un CDN ou VPS simple.
+  Inconvénients : premier chargement plus lent, pas d'accès direct à une BDD.
+
+
+────────────────────────────────────────────────────────────────────────────────
+18. CHECKLIST POUR UN NOUVEAU PROJET BLAZOR
+────────────────────────────────────────────────────────────────────────────────
+
+  □ Créer le repo GitHub (public ou privé)
+  □ Créer le .gitignore avant le premier commit (bin/, obj/, .env, médias)
+  □ Créer le .dockerignore
+  □ Créer le Dockerfile multi-stage (build → app)
+  □ Créer docker/nginx/default.conf (avec les headers WebSocket pour Blazor Server)
+  □ Créer docker-compose.yml (pour test local)
+  □ Créer docker-compose.prod.yml (pour Hostinger, images GHCR)
+  □ Créer .github/workflows/deploy.yml
+  □ Vérifier que ENTRYPOINT utilise le bon nom de DLL
+  □ Ajouter les secrets GitHub : HOSTINGER_API_KEY (+ secrets BDD si besoin)
+  □ Ajouter la variable GitHub : HOSTINGER_VM_ID
+  □ S'assurer que Traefik tourne sur le VPS avec le réseau "backend" external
+  □ Vérifier les labels WebSocket Traefik si Blazor Server
+  □ Vérifier que le domaine pointe vers l'IP du VPS (DNS propagation ~24h)
+  □ Faire le premier push sur main et surveiller GitHub Actions
+  □ Uploader les médias sur le VPS via SCP après le premier déploiement
+
+
+================================================================================
+  FIN DU GUIDE
+================================================================================

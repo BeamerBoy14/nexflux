@@ -63,10 +63,10 @@
         </div>
     </div>
 
-    <!-- Récapitulatif mensuel + détails -->
-    <div class="row g-4 align-items-start mb-4">
-        <div class="col-12 col-xl-8">
-            <div class="card h-100 mb-4 mb-xl-0">
+    <!-- Récapitulatif mensuel -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Récapitulatif par mois</h5>
                 </div>
@@ -112,8 +112,12 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-xl-4">
-            <div class="month-details-wrapper">
+    </div>
+
+    <!-- Détails du mois (bas de page) -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="month-details-wrapper month-details-wrapper--bottom">
                 <div class="card month-details-card @(detailsExpanded ? "expanded" : "collapsed")">
                     <div class="card-header d-flex justify-content-between align-items-start">
                         <div>

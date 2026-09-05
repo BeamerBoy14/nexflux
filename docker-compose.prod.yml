@@ -1,0 +1,38 @@
+services:
+  app:
+    image: ghcr.io/beamerboy14/nexflux-app:latest
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: "http://+:8080"
+      ConnectionStrings__DefaultConnection: "Server=db;Database=ComptabiliteDB;User Id=sa;Password=${DB_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+    volumes:
+      - app_data:/app/data
+    depends_on:
+      - db
+    networks:
+      - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexflux.rule=Host(`srv1773133.hstgr.cloud`)"
+      - "traefik.http.routers.nexflux.entrypoints=websecure"
+      - "traefik.http.routers.nexflux.tls.certresolver=letsencrypt"
+      - "traefik.http.services.nexflux.loadbalancer.server.port=8080"
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_SA_PASSWORD}
+    volumes:
+      - db_data:/var/opt/mssql
+    networks:
+      - backend
+
+volumes:
+  app_data:
+  db_data:
+
+networks:
+  backend:

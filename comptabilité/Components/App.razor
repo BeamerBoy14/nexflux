@@ -13,6 +13,29 @@
     <link rel="stylesheet" href="comptabilité.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
     <HeadOutlet />
+    <script>
+        // Écran de chargement : défini dans le <head> pour n'être exécuté
+        // qu'aux chargements complets de page (pas lors des navigations SPA).
+        window.__showSplash = function (text) {
+            if (document.getElementById('app-loading')) return;
+            var o = document.createElement('div');
+            o.id = 'app-loading';
+            o.className = 'app-loading';
+            o.innerHTML =
+                '<div class="app-loading__spinner"></div>' +
+                '<div class="app-loading__logo"><span class="gradient-text">NEX</span><span class="gradient-text-accent">FLUX</span></div>' +
+                '<div class="app-loading__text">' + (text || 'Chargement') + '<span class="app-loading__dots"></span></div>';
+            (document.body || document.documentElement).appendChild(o);
+        };
+        window.__hideSplash = function () {
+            var el = document.getElementById('app-loading');
+            if (!el) return;
+            el.classList.add('app-loading--hidden');
+            setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 600);
+        };
+        // Affiché immédiatement au chargement initial du document.
+        window.__showSplash();
+    </script>
 </head>
 
 <body class="bg-dark text-light">
@@ -20,7 +43,21 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="js/cleanup-cookies.js"></script>
     <script src="js/auth.js"></script>
-    <script src="_framework/blazor.web.js"></script>
+    <script src="_framework/blazor.web.js" autostart="false"></script>
+    <script>
+        (function () {
+            // Sécurité : masque l'écran de chargement au bout de 10 s même si Blazor n'a pas démarré
+            var safety = setTimeout(window.__hideSplash, 10000);
+
+            Blazor.start().then(function () {
+                clearTimeout(safety);
+                window.__hideSplash();
+            }).catch(function () {
+                clearTimeout(safety);
+                window.__hideSplash();
+            });
+        })();
+    </script>
     <script src="js/charts.js"></script>
 </body>
 

@@ -42,6 +42,100 @@ html, body {
 }
 
 /* ============================================
+   ÉCRAN DE CHARGEMENT (SPLASH)
+   ============================================ */
+
+.app-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    background: radial-gradient(circle at 50% 38%, #051736 0%, #00081c 55%, #000008 100%);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.app-loading--hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.app-loading__spinner {
+    position: relative;
+    width: 90px;
+    height: 90px;
+}
+
+.app-loading__spinner::before,
+.app-loading__spinner::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+.app-loading__spinner::before {
+    inset: 0;
+    border-top-color: var(--blue-cyan);
+    border-right-color: var(--blue-cyan);
+    box-shadow: 0 0 25px rgba(0, 204, 255, 0.45);
+    animation: app-loading-spin 1s linear infinite;
+}
+
+.app-loading__spinner::after {
+    inset: 14px;
+    border-bottom-color: var(--blue-electric);
+    border-left-color: var(--blue-electric);
+    box-shadow: 0 0 18px rgba(0, 0, 255, 0.4);
+    animation: app-loading-spin 1.5s linear infinite reverse;
+}
+
+@keyframes app-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+.app-loading__logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-left: 0.35em;
+    animation: app-loading-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes app-loading-pulse {
+    0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 204, 255, 0.3)); }
+    50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(0, 204, 255, 0.7)); }
+}
+
+.app-loading__text {
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.app-loading__dots::after {
+    content: '';
+    animation: app-loading-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes app-loading-dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+}
+
+/* ============================================
    NAVIGATION MODERNE
    ============================================ */
 
@@ -330,8 +424,13 @@ html, body {
     top: 6rem;
 }
 
+.month-details-wrapper--bottom {
+    position: static;
+    top: auto;
+}
+
 @media (max-width: 1199.98px) {
-    .month-details-wrapper {
+    .month-details-wrapper:not(.month-details-wrapper--bottom) {
         position: static;
     }
 }
@@ -399,6 +498,10 @@ html, body {
     max-height: calc(70vh - 8rem);
     overflow-y: auto;
     padding-right: 0.25rem;
+}
+
+.month-details-wrapper--bottom .month-details-list {
+    max-height: min(55vh, 720px);
 }
 
 .transaction-card {
@@ -620,7 +723,8 @@ html, body {
     }
 
     .month-details-table,
-    .month-details-list {
+    .month-details-list,
+    .month-details-wrapper--bottom .month-details-list {
         max-height: none;
     }
 }

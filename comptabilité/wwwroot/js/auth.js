@@ -27,8 +27,18 @@ window.authHelper = {
     }
 };
 
+// Affiche un écran de chargement plein écran (réutilisé pendant les transitions de page)
+window.showLoadingOverlay = function (text) {
+    if (window.__showSplash) {
+        window.__showSplash(text);
+    }
+};
+
 // Fonction globale de déconnexion
 window.performLogout = function() {
+    // Affiche l'animation de chargement pendant la redirection
+    window.showLoadingOverlay('Déconnexion');
+
     // Rediriger simplement vers la page de login
     // Le nettoyage de la session se fera côté serveur dans Login.razor
     window.location.href = '/login';

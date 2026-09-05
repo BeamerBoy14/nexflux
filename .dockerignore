@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+.vs/
+.git/
+.github/
+docker/
+**/*.md
+**/*.txt
+*.sql
+*.ps1
+wwwroot/uploads/
+wwwroot/videos/

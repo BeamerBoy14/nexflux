@@ -5,6 +5,7 @@
 @using System.ComponentModel.DataAnnotations
 @inject AuthService AuthService
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @rendermode InteractiveServer
 
 <PageTitle>Connexion - NexFlux</PageTitle>
@@ -132,10 +133,13 @@ else
             {
                 successMessage = "Connexion réussie ! Redirection...";
                 await InvokeAsync(StateHasChanged);
-                
+
+                // Affiche l'animation de chargement plein écran pour couvrir le rechargement
+                await JSRuntime.InvokeVoidAsync("showLoadingOverlay", "Connexion");
+
                 // Attendre un peu pour que l'UI se mette à jour
-                await Task.Delay(500);
-                
+                await Task.Delay(300);
+
                 // Rediriger vers la page d'accueil
                 NavigationManager.NavigateTo("/", forceLoad: true);
             }
