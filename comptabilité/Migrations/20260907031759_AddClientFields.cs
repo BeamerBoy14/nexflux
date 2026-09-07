@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -10,18 +11,6 @@ namespace comptabilité.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "NumeroIdd",
-                table: "Clients",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "NumeroPermis",
-                table: "Clients",
-                type: "nvarchar(max)",
-                nullable: true);
-
             migrationBuilder.AddColumn<DateTime>(
                 name: "DateNaissance",
                 table: "Clients",
@@ -33,19 +22,23 @@ namespace comptabilité.Migrations
                 table: "Clients",
                 type: "nvarchar(max)",
                 nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "NumeroIdd",
+                table: "Clients",
+                type: "nvarchar(max)",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "NumeroPermis",
+                table: "Clients",
+                type: "nvarchar(max)",
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "NumeroIdd",
-                table: "Clients");
-
-            migrationBuilder.DropColumn(
-                name: "NumeroPermis",
-                table: "Clients");
-
             migrationBuilder.DropColumn(
                 name: "DateNaissance",
                 table: "Clients");
@@ -53,7 +46,14 @@ namespace comptabilité.Migrations
             migrationBuilder.DropColumn(
                 name: "IdTel",
                 table: "Clients");
+
+            migrationBuilder.DropColumn(
+                name: "NumeroIdd",
+                table: "Clients");
+
+            migrationBuilder.DropColumn(
+                name: "NumeroPermis",
+                table: "Clients");
         }
     }
 }
-
