@@ -49,3 +49,5 @@ jobs:
           environment-variables: |
             ASPNETCORE_ENVIRONMENT=Production
             DB_SA_PASSWORD=${{ secrets.DB_SA_PASSWORD }}
+            SEED_TRANSERALEGEND_PASSWORD=${{ secrets.SEED_TRANSERALEGEND_PASSWORD }}
+            SEED_ENTREPRISE2_PASSWORD=${{ secrets.SEED_ENTREPRISE2_PASSWORD }}

@@ -17,6 +17,7 @@ public class ComptabiliteDbContext : DbContext
     public DbSet<Transaction> Transactions { get; set; }
     public DbSet<Poste> Postes { get; set; }
     public DbSet<Voiture> Voitures { get; set; }
+    public DbSet<VoitureLogo> VoitureLogos { get; set; }
     public DbSet<Reservation> Reservations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -111,6 +112,19 @@ public class ComptabiliteDbContext : DbContext
                 .WithMany(u => u.Voitures)
                 .HasForeignKey(e => e.UtilisateurId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Configuration VoitureLogo (image stockée à part pour ne pas alourdir les requêtes sur Voiture)
+        modelBuilder.Entity<VoitureLogo>(entity =>
+        {
+            entity.HasKey(e => e.VoitureId);
+            entity.Property(e => e.Data).IsRequired();
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Voiture)
+                .WithOne(v => v.Logo)
+                .HasForeignKey<VoitureLogo>(e => e.VoitureId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Configuration Reservation

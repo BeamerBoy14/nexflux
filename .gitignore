@@ -444,3 +444,7 @@ add_*.sql
 
 # Fichiers de logs
 *.log
+
+# Cles de protection des donnees generees a l'execution (jamais a versionner)
+**/data/keys/
+**/Data/keys/

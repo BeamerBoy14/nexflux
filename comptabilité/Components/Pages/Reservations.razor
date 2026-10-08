@@ -19,7 +19,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <h2>Gestion des Réservations</h2>
         <button class="btn btn-primary align-self-start align-self-lg-auto" @onclick="ShowAddReservationModal" disabled="@(!clients.Any())">
-            <i class="bi bi-calendar-plus"></i> Nouvelle réservation
+            <i class="bi bi-calendar-plus" aria-hidden="true"></i> Nouvelle réservation
         </button>
     </div>
 
@@ -102,19 +102,19 @@
                                                     @FormatCurrency(CalculateAmount(reservation))
                                                 </div>
                                                 <div class="reservation-card-actions">
-                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier">
-                                                        <i class="bi bi-pencil"></i>
+                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @reservation.Client.Nom">
+                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @reservation.Client.Nom">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="reservation-card-body">
                                             <div class="reservation-meta">
-                                                <span><i class="bi bi-clock-history me-1"></i>@FormatDays(CalculateDuration(reservation))</span>
-                                                <span><i class="bi bi-receipt me-1"></i>@reservation.Transactions.Count transaction(s)</span>
+                                                <span><i class="bi bi-clock-history me-1" aria-hidden="true"></i>@FormatDays(CalculateDuration(reservation))</span>
+                                                <span><i class="bi bi-receipt me-1" aria-hidden="true"></i>@reservation.Transactions.Count transaction(s)</span>
                                             </div>
                                             @if (!string.IsNullOrWhiteSpace(reservation.Notes))
                                             {
@@ -143,7 +143,7 @@
                         else
                         {
                             <div class="text-center text-muted py-5">
-                                <i class="bi bi-calendar-event display-6 mb-3"></i>
+                                <i class="bi bi-calendar-event display-6 mb-3" aria-hidden="true"></i>
                                 <p class="fw-semibold mb-1">Aucune réservation planifiée</p>
                                 <p class="mb-0">Créez une nouvelle réservation pour la voir ici.</p>
                             </div>
@@ -179,19 +179,19 @@
                                                     @FormatCurrency(CalculateAmount(reservation))
                                                 </div>
                                                 <div class="reservation-card-actions">
-                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier">
-                                                        <i class="bi bi-pencil"></i>
+                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @reservation.Client.Nom">
+                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @reservation.Client.Nom">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="reservation-card-body">
                                             <div class="reservation-meta">
-                                                <span><i class="bi bi-clock-history me-1"></i>@FormatDays(CalculateDuration(reservation))</span>
-                                                <span><i class="bi bi-receipt me-1"></i>@reservation.Transactions.Count transaction(s)</span>
+                                                <span><i class="bi bi-clock-history me-1" aria-hidden="true"></i>@FormatDays(CalculateDuration(reservation))</span>
+                                                <span><i class="bi bi-receipt me-1" aria-hidden="true"></i>@reservation.Transactions.Count transaction(s)</span>
                                             </div>
                                             @if (!string.IsNullOrWhiteSpace(reservation.Notes))
                                             {
@@ -209,9 +209,8 @@
                                         <span class="text-muted">Page @currentPage sur @totalPages (@pastReservations.Count réservation(s) passée(s))</span>
                                     </div>
                                     <div class="d-flex gap-2 align-items-center">
-                                        <label class="form-label mb-0">Page :</label>
-                                        <select class="form-select form-select-sm" 
-                                                style="width: auto; min-width: 100px;" 
+                                        <label for="reservations-champ-1" class="form-label mb-0">Page :</label>
+                                        <select id="reservations-champ-1" class="form-select form-select-sm select-auto" aria-label="Page"
                                                 @onchange="OnPageChanged"
                                                 value="@currentPage">
                                             @for (int i = 1; i <= totalPages; i++)
@@ -226,7 +225,7 @@
                         else
                         {
                             <div class="text-center text-muted py-5">
-                                <i class="bi bi-archive display-6 mb-3"></i>
+                                <i class="bi bi-archive display-6 mb-3" aria-hidden="true"></i>
                                 <p class="fw-semibold mb-1">Aucune réservation passée</p>
                                 <p class="mb-0">Les réservations terminées apparaîtront ici.</p>
                             </div>
@@ -241,12 +240,12 @@
 <!-- Modal création / édition réservation -->
 @if (showReservationModal)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-backdrop-custom" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@((reservationBeingEdited?.Id ?? 0) == 0 ? "Créer une réservation" : $"Modifier la réservation #{reservationBeingEdited!.Id}")</h5>
-                    <button type="button" class="btn-close" @onclick="CloseReservationModal"></button>
+                    <h5 class="modal-title" id="modal-title">@((reservationBeingEdited?.Id ?? 0) == 0 ? "Créer une réservation" : $"Modifier la réservation #{reservationBeingEdited!.Id}")</h5>
+                    <button type="button" class="btn-close" aria-label="Fermer" @onclick="CloseReservationModal"></button>
                 </div>
                 <div class="modal-body">
                     @if (!string.IsNullOrEmpty(reservationError))
@@ -257,8 +256,8 @@
                         <DataAnnotationsValidator />
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
-                                <label class="form-label">Client *</label>
-                                <InputSelect class="form-select" @bind-Value="newReservation.ClientId" @onchange="OnClientChanged">
+                                <label for="reservations-champ-2" class="form-label">Client *</label>
+                                <InputSelect id="reservations-champ-2" class="form-select" @bind-Value="newReservation.ClientId" @onchange="OnClientChanged">
                                     <option value="">Sélectionner un client</option>
                                     @foreach (var client in clients)
                                     {
@@ -268,18 +267,18 @@
                                 <ValidationMessage For="@(() => newReservation.ClientId)" />
                             </div>
                             <div class="col-12 col-md-3">
-                                <label class="form-label">Date de début *</label>
-                                <InputDate class="form-control" @bind-Value="newReservation.DateDebut" />
+                                <label for="reservations-champ-3" class="form-label">Date de début *</label>
+                                <InputDate id="reservations-champ-3" class="form-control" @bind-Value="newReservation.DateDebut" />
                                 <ValidationMessage For="@(() => newReservation.DateDebut)" />
                             </div>
                             <div class="col-12 col-md-3">
-                                <label class="form-label">Date de fin *</label>
-                                <InputDate class="form-control" @bind-Value="newReservation.DateFin" />
+                                <label for="reservations-champ-4" class="form-label">Date de fin *</label>
+                                <InputDate id="reservations-champ-4" class="form-control" @bind-Value="newReservation.DateFin" />
                                 <ValidationMessage For="@(() => newReservation.DateFin)" />
                             </div>
                             <div class="col-12 col-md-6">
-                                <label class="form-label">Statut *</label>
-                                <InputSelect class="form-select" @bind-Value="newReservation.Statut">
+                                <label for="reservations-champ-5" class="form-label">Statut *</label>
+                                <InputSelect id="reservations-champ-5" class="form-select" @bind-Value="newReservation.Statut">
                                     @foreach (var status in reservationStatuses)
                                     {
                                         <option value="@status">@status</option>
@@ -288,11 +287,11 @@
                                 <ValidationMessage For="@(() => newReservation.Statut)" />
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Notes</label>
-                                <InputTextArea class="form-control" rows="3" @bind-Value="newReservation.Notes" />
+                                <label for="reservations-champ-6" class="form-label">Notes</label>
+                                <InputTextArea id="reservations-champ-6" class="form-control" rows="3" @bind-Value="newReservation.Notes" />
                             </div>
-                            <div class="col-12">
-                                <label class="form-label">Transactions associées</label>
+                            <div class="col-12" role="group" aria-labelledby="reservations-transactions-label">
+                                <label class="form-label" id="reservations-transactions-label">Transactions associées</label>
                                 @if (transactionWarningVisible)
                                 {
                                     <div class="alert alert-warning">
@@ -314,8 +313,8 @@
                                     <div class="reservation-transaction-selector">
                                         @foreach (var transaction in transactionsForClient)
                                         {
-                                            <label class="reservation-transaction-item">
-                                                <input type="checkbox"
+                                            <label for="reservations-champ-7" class="reservation-transaction-item">
+                                                <input id="reservations-champ-7" type="checkbox"
                                                        value="@transaction.Id"
                                                        checked="@selectedTransactionIds.Contains(transaction.Id)"
                                                        @onchange="args => ToggleTransactionSelection(transaction.Id, args)" />

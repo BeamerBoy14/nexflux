@@ -1,0 +1,523 @@
+@page "/voitures/{voitureId:int}"
+@using comptabilité.Models
+@using comptabilité.Data
+@using comptabilité.Services
+@using Microsoft.EntityFrameworkCore
+@using System.Globalization
+@inject IServiceScopeFactory ServiceScopeFactory
+@inject NavigationManager NavigationManager
+@inject AuthService AuthService
+@inject VoitureLogoCatalog LogoCatalog
+@inject BreadcrumbState Breadcrumb
+@implements IDisposable
+@rendermode InteractiveServer
+
+<PageTitle>@(voiture is null ? "Détails de la voiture" : voiture.Nom)</PageTitle>
+
+@if (voiture is not null && LogoCatalog.GetPath(voiture.Nom) is { } backdropLogo)
+{
+    <div class="voiture-backdrop" aria-hidden="true">
+        <img src="@backdropLogo" alt="" />
+    </div>
+}
+
+<div class="container mt-4 voiture-page">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <button class="btn btn-outline-light" @onclick="NavigateBack">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Retour à la liste
+            </button>
+        </div>
+        @if (voiture is not null)
+        {
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <span class="text-muted">Voiture n°@voiture.Id</span>
+                    <h2 class="mb-0">@voiture.Nom</h2>
+                </div>
+                <VoitureLogoBadge VoitureId="voiture.Id" Nom="@voiture.Nom" Version="voiture.LogoUpdatedAt" Size="lg" />
+            </div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="row g-4">
+            <div class="col-12 col-xl-8">
+                <div class="skeleton-card">
+                    <div class="skeleton-line w-40"></div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-line w-60"></div>
+                        <div class="skeleton-line w-50"></div>
+                        <div class="skeleton-line w-45"></div>
+                    </div>
+                    <div class="skeleton-inline">
+                        <div class="skeleton-line w-55"></div>
+                        <div class="skeleton-line w-45"></div>
+                        <div class="skeleton-line w-50"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="skeleton-card">
+                    <div class="skeleton-line w-50"></div>
+                    <div class="skeleton-line w-60"></div>
+                    <div class="skeleton-line w-75"></div>
+                    <div class="skeleton-line w-45"></div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (voiture is null)
+    {
+        <div class="alert alert-danger" role="alert">
+            Impossible de trouver cette voiture. Elle a peut-être été supprimée.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Statistiques</h5>
+                        <span class="badge bg-info">@transactions.Count transaction(s)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-stats-grid">
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Dépenses totales</span>
+                                <span class="client-stat-value text-danger">@FormatCurrency(totalExpenses)</span>
+                                <span class="client-stat-sub">@expenses.Count dépense(s)</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Revenus générés</span>
+                                <span class="client-stat-value text-success">@FormatCurrency(totalGains)</span>
+                                <span class="client-stat-sub">@gains.Count gain(s)</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Solde</span>
+                                <span class="client-stat-value @(balance >= 0 ? "text-success" : "text-danger")">@FormatCurrency(balance)</span>
+                                <span class="client-stat-sub">revenus moins dépenses</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Dépense moyenne</span>
+                                <span class="client-stat-value">@FormatCurrency(averageExpense)</span>
+                                <span class="client-stat-sub">par dépense</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Dépenses @DateTime.Now.Year</span>
+                                <span class="client-stat-value">@FormatCurrency(expensesThisYear)</span>
+                                <span class="client-stat-sub">depuis le 1er janvier</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Plus grosse dépense</span>
+                                <span class="client-stat-value">@(biggestExpense is null ? "-" : FormatCurrency(biggestExpense.Montant))</span>
+                                <span class="client-stat-sub">@(biggestExpense is null ? "aucune dépense" : DescribeTransaction(biggestExpense))</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Dernière dépense</span>
+                                <span class="client-stat-value">@(lastExpense is null ? "-" : FormatCurrency(lastExpense.Montant))</span>
+                                <span class="client-stat-sub">@(lastExpense is null ? "aucune dépense" : DescribeTransaction(lastExpense))</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Réservations liées</span>
+                                <span class="client-stat-value">@linkedReservations</span>
+                                <span class="client-stat-sub">@distinctClients client(s) concerné(s)</span>
+                            </div>
+                            <div class="client-stat-card">
+                                <span class="client-stat-label">Dépenses par km</span>
+                                <span class="client-stat-value">@(costPerKm.HasValue ? string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N3} €", costPerKm.Value) : "-")</span>
+                                <span class="client-stat-sub">@(costPerKm.HasValue ? "dépenses ÷ kilométrage" : "kilométrage non renseigné")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informations du véhicule</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="client-info-grid">
+                            <div class="client-info-item">
+                                <span class="client-info-label">Nom</span>
+                                <span class="client-info-value">@voiture.Nom</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Immatriculation</span>
+                                <span class="client-info-value">@FormatValue(voiture.Immatriculation)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Année</span>
+                                <span class="client-info-value">@FormatYear(voiture.Annee)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Kilométrage</span>
+                                <span class="client-info-value">@FormatKilometrage(voiture.Kilometrage)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Description</span>
+                                <span class="client-info-value">@FormatValue(voiture.Description)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Première transaction</span>
+                                <span class="client-info-value">@FormatDate(firstTransactionDate)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Dernière transaction</span>
+                                <span class="client-info-value">@FormatDate(lastTransactionDate)</span>
+                            </div>
+                            <div class="client-info-item">
+                                <span class="client-info-label">Ajoutée le</span>
+                                <span class="client-info-value">@voiture.DateCreation.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12 col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Dépenses par catégorie</h5>
+                        <span class="text-muted">@categories.Count catégorie(s)</span>
+                    </div>
+                    <div class="card-body">
+                        @if (categories.Any())
+                        {
+                            <div class="voiture-category-list">
+                                @foreach (var category in categories)
+                                {
+                                    <details class="voiture-category">
+                                        <summary class="voiture-category-summary">
+                                            <span class="voiture-category-name">@category.Name</span>
+                                            <span class="voiture-category-count">@category.Count dépense(s)</span>
+                                            <span class="voiture-category-total">@FormatCurrency(category.Total)</span>
+                                            <span class="voiture-category-share">@FormatPercent(category.Share)</span>
+                                            <progress class="voiture-category-bar" max="100" value="@category.Share.ToString("0.##", CultureInfo.InvariantCulture)" aria-label="@category.Name : @FormatPercent(category.Share) des dépenses"></progress>
+                                        </summary>
+                                        <ul class="voiture-category-items">
+                                            @foreach (var item in category.Items)
+                                            {
+                                                <li>
+                                                    <span class="voiture-category-item-date">@item.Date.ToString("dd/MM/yyyy")</span>
+                                                    <span class="voiture-category-item-label">@(string.IsNullOrWhiteSpace(item.Libelle) ? "Sans libellé" : item.Libelle)</span>
+                                                    <span class="voiture-category-item-amount text-danger">@FormatCurrency(item.Montant)</span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </details>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center text-muted py-5">
+                                <i class="bi bi-inbox display-6 mb-3" aria-hidden="true"></i>
+                                <p class="fw-semibold mb-1">Aucune dépense enregistrée</p>
+                                <p class="mb-0">Associez cette voiture à une transaction de type « Dépense » pour la voir ici.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Bilan par année</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (years.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <caption class="visually-hidden">Dépenses et revenus de la voiture par année</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Année</th>
+                                            <th scope="col" class="text-end">Dépenses</th>
+                                            <th scope="col" class="text-end">Revenus</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var year in years)
+                                        {
+                                            <tr>
+                                                <td>@year.Year</td>
+                                                <td class="text-end text-danger">@FormatCurrency(year.Expenses)</td>
+                                                <td class="text-end text-success">@FormatCurrency(year.Gains)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">Aucune transaction pour le moment.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 class="mb-0">Historique des transactions</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="voiture-filtre-type" class="form-label mb-0">Type :</label>
+                    <select id="voiture-filtre-type" class="form-select form-select-sm select-auto" @bind="typeFilter">
+                        <option value="Tous">Tous</option>
+                        <option value="Dépense">Dépenses</option>
+                        <option value="Gain">Gains</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (FilteredTransactions.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <caption class="visually-hidden">Toutes les transactions liées à cette voiture</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Libellé</th>
+                                    <th scope="col">Catégorie</th>
+                                    <th scope="col">Type</th>
+                                    <th scope="col">Client</th>
+                                    <th scope="col" class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var transaction in FilteredTransactions)
+                                {
+                                    var isGain = IsGain(transaction);
+                                    <tr>
+                                        <td>@transaction.Date.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            @(string.IsNullOrWhiteSpace(transaction.Libelle) ? "Sans libellé" : transaction.Libelle)
+                                            @if (!string.IsNullOrWhiteSpace(transaction.Description))
+                                            {
+                                                <small class="d-block text-muted">@transaction.Description</small>
+                                            }
+                                        </td>
+                                        <td>@(transaction.Poste?.Nom ?? "-")</td>
+                                        <td>
+                                            <span class="badge @(isGain ? "bg-success" : "bg-danger")">@(isGain ? "Gain" : "Dépense")</span>
+                                        </td>
+                                        <td>@(transaction.Client?.Nom ?? "-")</td>
+                                        <td class="text-end @(isGain ? "text-success" : "text-danger")">@(isGain ? "+" : "-")@FormatCurrency(Math.Abs(transaction.Montant))</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-inbox display-6 mb-3" aria-hidden="true"></i>
+                        <p class="fw-semibold mb-1">Aucune transaction à afficher</p>
+                        <p class="mb-0">Les transactions liées à cette voiture apparaîtront ici.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private sealed record CategorySummary(string Name, int Count, decimal Total, decimal Share, List<Transaction> Items);
+    private sealed record YearSummary(int Year, decimal Expenses, decimal Gains);
+
+    [Parameter]
+    public int voitureId { get; set; }
+
+    private Voiture? voiture;
+    private bool isLoading = true;
+    private string typeFilter = "Tous";
+
+    private List<Transaction> transactions = new();
+    private List<Transaction> expenses = new();
+    private List<Transaction> gains = new();
+    private List<CategorySummary> categories = new();
+    private List<YearSummary> years = new();
+
+    private decimal totalExpenses;
+    private decimal totalGains;
+    private decimal balance;
+    private decimal averageExpense;
+    private decimal expensesThisYear;
+    private decimal? costPerKm;
+    private Transaction? biggestExpense;
+    private Transaction? lastExpense;
+    private DateTime? firstTransactionDate;
+    private DateTime? lastTransactionDate;
+    private int linkedReservations;
+    private int distinctClients;
+
+    private IEnumerable<Transaction> FilteredTransactions => typeFilter switch
+    {
+        "Dépense" => transactions.Where(t => !IsGain(t)),
+        "Gain" => transactions.Where(IsGain),
+        _ => transactions
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadVoitureDetails();
+    }
+
+    private async Task LoadVoitureDetails()
+    {
+        isLoading = true;
+        Reset();
+
+        var userId = AuthService.GetUtilisateurId();
+        if (!userId.HasValue)
+        {
+            Breadcrumb.SetDetailLabel("voitures", null);
+            isLoading = false;
+            return;
+        }
+
+        using var scope = ServiceScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
+
+        voiture = await db.Voitures
+            .FirstOrDefaultAsync(v => v.Id == voitureId && v.UtilisateurId == userId.Value);
+
+        Breadcrumb.SetDetailLabel("voitures", voiture?.Nom);
+
+        if (voiture is null)
+        {
+            isLoading = false;
+            return;
+        }
+
+        transactions = await db.Transactions
+            .Where(t => t.UtilisateurId == userId.Value && t.VoitureId == voitureId)
+            .Include(t => t.Poste)
+            .Include(t => t.Client)
+            .OrderByDescending(t => t.Date)
+            .ThenByDescending(t => t.Id)
+            .ToListAsync();
+
+        ComputeStats();
+        isLoading = false;
+    }
+
+    private void ComputeStats()
+    {
+        expenses = transactions.Where(t => !IsGain(t)).ToList();
+        gains = transactions.Where(IsGain).ToList();
+
+        totalExpenses = expenses.Sum(t => t.Montant);
+        totalGains = gains.Sum(t => t.Montant);
+        balance = totalGains - totalExpenses;
+        averageExpense = expenses.Count > 0 ? totalExpenses / expenses.Count : 0;
+        expensesThisYear = expenses.Where(t => t.Date.Year == DateTime.Now.Year).Sum(t => t.Montant);
+        biggestExpense = expenses.OrderByDescending(t => t.Montant).FirstOrDefault();
+        lastExpense = expenses.FirstOrDefault();
+
+        if (transactions.Count > 0)
+        {
+            firstTransactionDate = transactions.Min(t => t.Date);
+            lastTransactionDate = transactions.Max(t => t.Date);
+        }
+
+        linkedReservations = gains
+            .Where(t => t.ReservationId.HasValue)
+            .Select(t => t.ReservationId!.Value)
+            .Distinct()
+            .Count();
+        distinctClients = gains
+            .Where(t => t.ClientId.HasValue)
+            .Select(t => t.ClientId!.Value)
+            .Distinct()
+            .Count();
+
+        costPerKm = voiture?.Kilometrage is > 0 ? totalExpenses / voiture.Kilometrage.Value : null;
+
+        categories = expenses
+            .GroupBy(t => t.Poste?.Nom ?? "Sans catégorie")
+            .Select(g =>
+            {
+                var total = g.Sum(t => t.Montant);
+                var share = totalExpenses > 0 ? total / totalExpenses * 100 : 0;
+                return new CategorySummary(g.Key, g.Count(), total, share, g.OrderByDescending(t => t.Date).ToList());
+            })
+            .OrderByDescending(c => c.Total)
+            .ToList();
+
+        years = transactions
+            .GroupBy(t => t.Date.Year)
+            .Select(g => new YearSummary(
+                g.Key,
+                g.Where(t => !IsGain(t)).Sum(t => t.Montant),
+                g.Where(IsGain).Sum(t => t.Montant)))
+            .OrderByDescending(y => y.Year)
+            .ToList();
+    }
+
+    private void Reset()
+    {
+        voiture = null;
+        transactions = new();
+        expenses = new();
+        gains = new();
+        categories = new();
+        years = new();
+        totalExpenses = totalGains = balance = averageExpense = expensesThisYear = 0;
+        costPerKm = null;
+        biggestExpense = lastExpense = null;
+        firstTransactionDate = lastTransactionDate = null;
+        linkedReservations = distinctClients = 0;
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/voitures");
+    }
+
+    public void Dispose()
+    {
+        Breadcrumb.SetDetailLabel(null, null);
+    }
+
+    private static bool IsGain(Transaction t) =>
+        string.Equals(t.Type, "Gain", StringComparison.OrdinalIgnoreCase);
+
+    private static string DescribeTransaction(Transaction t) =>
+        $"{t.Date:dd/MM/yyyy} · {(string.IsNullOrWhiteSpace(t.Libelle) ? "Sans libellé" : t.Libelle)}";
+
+    private static string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private static string FormatCurrency(decimal value) =>
+        string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N2} €", value);
+
+    private static string FormatPercent(decimal value) =>
+        string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N1} %", value);
+
+    private static string FormatDate(DateTime? value) =>
+        value.HasValue ? value.Value.ToString("dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR")) : "-";
+
+    private static string FormatKilometrage(int? km) =>
+        km.HasValue ? string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N0} km", km.Value) : "-";
+
+    private static string FormatYear(int? year)
+    {
+        if (!year.HasValue)
+        {
+            return "-";
+        }
+
+        var age = DateTime.Now.Year - year.Value;
+        return age > 0 ? $"{year} ({age} ans)" : year.Value.ToString();
+    }
+}

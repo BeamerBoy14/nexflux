@@ -1,0 +1,67 @@
+/* ============================================
+   ACCESSIBILITÉ ET UTILITAIRES COMMUNS
+   ============================================ */
+
+:focus-visible {
+    outline: 2px solid var(--blue-cyan);
+    outline-offset: 2px;
+}
+
+/* .nav-link coupe ce qui dépasse (overflow: hidden) : le contour reste à l'intérieur */
+.nav-link:focus-visible {
+    outline-offset: -2px;
+}
+
+.skip-link {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    z-index: 100001;
+    padding: 0.75rem 1.25rem;
+    border: 0;
+    border-radius: 8px;
+    background: var(--blue-cyan);
+    color: #000;
+    font-weight: 700;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 1rem;
+}
+
+.modal-backdrop-custom {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.select-auto {
+    width: auto;
+    min-width: 100px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Les indicateurs de chargement doivent rester animés */
+    .spinner-border {
+        animation-duration: 0.75s !important;
+        animation-iteration-count: infinite !important;
+    }
+
+    .app-loading__spinner::before {
+        animation-duration: 1s !important;
+        animation-iteration-count: infinite !important;
+    }
+
+    .app-loading__spinner::after {
+        animation-duration: 1.5s !important;
+        animation-iteration-count: infinite !important;
+    }
+}

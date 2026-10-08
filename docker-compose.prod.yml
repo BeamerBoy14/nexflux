@@ -1,10 +1,13 @@
 services:
   app:
     image: ghcr.io/beamerboy14/nexflux-app:latest
+    pull_policy: always
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: "http://+:8080"
+      Seed__TransEraLegendPassword: ${SEED_TRANSERALEGEND_PASSWORD}
+      Seed__Entreprise2Password: ${SEED_ENTREPRISE2_PASSWORD}
       ConnectionStrings__DefaultConnection: "Server=db;Database=ComptabiliteDB;User Id=sa;Password=${DB_SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
     volumes:
       - app_data:/app/data

@@ -1,0 +1,120 @@
+/* ============================================
+   BADGES MODERNES
+   ============================================ */
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #ffffff !important; /* Force le texte en blanc pour tous les badges */
+}
+
+.bg-info {
+    background: linear-gradient(135deg, var(--blue-cyan), var(--blue-electric)) !important;
+    color: #ffffff !important;
+}
+
+.bg-secondary {
+    background: linear-gradient(135deg, #64748b, #475569) !important;
+    color: #ffffff !important;
+}
+
+.bg-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #ffffff !important;
+}
+
+.bg-success {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: #ffffff !important;
+}
+
+.bg-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    color: #ffffff !important; /* Changé de #000 à #ffffff */
+}
+
+/* ============================================
+   GRAPHIQUES
+   ============================================ */
+
+.chart-container {
+    background: rgba(0, 0, 30, 0.6);
+    border-radius: 20px;
+    padding: 2rem;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 204, 255, 0.2);
+    box-shadow: 0 0 30px rgba(0, 204, 255, 0.1);
+}
+
+.chart-container-tall {
+    position: relative;
+    height: 450px;
+}
+
+.chart-container canvas {
+    max-width: 100%;
+}
+
+/* ============================================
+   MODAL MODERNE
+   ============================================ */
+
+.modal-content {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, rgba(0, 0, 255, 0.2), rgba(0, 204, 255, 0.2));
+    border-bottom: 1px solid rgba(0, 204, 255, 0.2);
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-close {
+    filter: invert(1);
+    opacity: 0.8;
+}
+
+.btn-close:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   ALERTES
+   ============================================ */
+
+.alert {
+    border-radius: 12px;
+    border: none;
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, var(--blue-cyan), var(--blue-electric));
+    color: white;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+

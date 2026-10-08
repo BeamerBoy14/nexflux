@@ -1,0 +1,83 @@
+/* ============================================
+   TITRES ET TYPOGRAPHIE
+   ============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+h2 {
+    background: linear-gradient(135deg, var(--blue-cyan), var(--blue-electric));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 30px rgba(0, 204, 255, 0.5);
+}
+
+h5 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ============================================
+   COULEURS DE TEXTE
+   ============================================ */
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.text-danger {
+    color: #ef4444 !important;
+}
+
+.text-success {
+    color: #10b981 !important;
+}
+
+.text-info {
+    color: var(--blue-cyan) !important;
+}
+
+/* ============================================
+   CHECKBOX ET RADIO
+   ============================================ */
+
+.form-check-input {
+    background-color: rgba(0, 0, 30, 0.8);
+    border: 2px solid rgba(0, 204, 255, 0.3);
+    border-radius: 6px;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.form-check-input:checked {
+    background: linear-gradient(135deg, var(--blue-cyan), var(--blue-electric));
+    border-color: var(--blue-cyan);
+}
+
+.form-check-input:focus {
+    border-color: var(--blue-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 204, 255, 0.3);
+}
+
+.form-check-label {
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+/* ============================================
+   SPINNER
+   ============================================ */
+
+.spinner-border {
+    border-color: var(--blue-cyan);
+    border-right-color: transparent;
+}
+

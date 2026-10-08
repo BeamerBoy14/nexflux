@@ -1,0 +1,209 @@
+
+.reservation-summary-card {
+    min-height: 160px;
+}
+
+.reservation-summary-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.reservation-summary-value {
+    display: block;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-top: 0.35rem;
+    color: var(--text-primary);
+}
+
+.reservation-summary-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.reservation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.reservation-card {
+    background: rgba(4, 12, 35, 0.85);
+    border-radius: 16px;
+    border: 1px solid rgba(0, 204, 255, 0.12);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.reservation-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 204, 255, 0.28);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.reservation-card--past {
+    opacity: 0.85;
+}
+
+.reservation-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.reservation-dates {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.reservation-title {
+    margin: 0.25rem 0 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.reservation-amount {
+    font-size: 1.3rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.reservation-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reservation-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.reservation-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.reservation-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.reservation-notes {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.reservation-transactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+@media (max-width: 575.98px) {
+    .reservation-card {
+        padding: 1rem;
+    }
+}
+
+.modal .form-control,
+.modal .form-select,
+.modal textarea {
+    background: rgba(0, 0, 30, 0.9);
+    border: 1px solid rgba(0, 204, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.modal .form-control:focus,
+.modal .form-select:focus,
+.modal textarea:focus {
+    border-color: var(--blue-cyan);
+    box-shadow: 0 0 0 0.1rem rgba(0, 204, 255, 0.25);
+}
+
+.reservation-transaction-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.reservation-transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(0, 204, 255, 0.15);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: border 0.2s ease, background 0.2s ease;
+}
+
+.reservation-transaction-item:hover {
+    border-color: rgba(0, 204, 255, 0.35);
+    background: rgba(0, 0, 30, 0.35);
+}
+
+.reservation-transaction-item input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.reservation-transaction-content {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.reservation-transaction-content .transaction-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.reservation-transaction-content .transaction-libelle {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.reservation-transaction-content .transaction-amount {
+    font-weight: 600;
+    margin-left: auto;
+}
+
+@media (max-width: 575.98px) {
+    .client-stats-grid {
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+}
+
+.table tbody td .text-info,
+.table tbody td .text-warning {
+    color: #ffffff !important;
+}
+
+/* Lignes alternées simples */
+.table-striped > tbody > tr:nth-of-type(odd) {
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+

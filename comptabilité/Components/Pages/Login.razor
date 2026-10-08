@@ -17,16 +17,20 @@
 else
 {
 <div class="login-container">
-    <div class="login-background">
-        <!-- Éléments décoratifs animés - Cartes vertes qui bougent -->
-        <div class="floating-card floating-card-1"></div>
-        <div class="floating-card floating-card-2"></div>
-        <div class="floating-card floating-card-3"></div>
-        <div class="floating-card floating-card-4"></div>
-        <div class="floating-card floating-card-5"></div>
+    <div class="login-media" aria-hidden="true">
+        <video class="login-video" autoplay muted loop playsinline preload="auto">
+            <source src="media/citynight.mp4" type="video/mp4" />
+        </video>
+        <div class="login-media-shade"></div>
     </div>
 
-    <div class="login-content">
+    <div class="login-panel">
+        <div class="login-logos" aria-hidden="true">
+            <div class="login-logo"><img src="images/logos/mustang.svg" alt="" /></div>
+            <div class="login-logo"><img src="images/logos/corvette.svg" alt="" /></div>
+            <div class="login-logo"><img src="images/logos/firebird.svg" alt="" /></div>
+        </div>
+
         <div class="login-card">
             <div class="login-header">
                 <h1 class="login-title">
@@ -55,7 +59,8 @@ else
                     <InputText @bind-Value="username" 
                                class="form-control" 
                                id="nomUtilisateur"
-                               placeholder="TransEraLegend ou Entreprise2" />
+                               placeholder="Votre nom d'utilisateur"
+                               autocomplete="username" />
                 </div>
 
                 <div class="form-group">
@@ -65,7 +70,8 @@ else
                            @bind:event="oninput"
                            class="form-control" 
                            id="motDePasse"
-                           placeholder="Votre mot de passe" />
+                           placeholder="Votre mot de passe"
+                           autocomplete="current-password" />
                 </div>
 
                 <button type="button" 
@@ -82,10 +88,6 @@ else
                         <span>Se connecter</span>
                     }
                 </button>
-            </div>
-
-            <div class="login-footer">
-                <p class="text-muted">Comptes de test:<br/>TransEraLegend / TransEra2024!<br/>Entreprise2 / Entreprise2024!</p>
             </div>
         </div>
     </div>

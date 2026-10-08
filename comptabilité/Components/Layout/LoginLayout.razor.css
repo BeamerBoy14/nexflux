@@ -1,0 +1,27 @@
+#blazor-error-ui {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff;
+    bottom: 0;
+    box-shadow: 0 -4px 20px rgba(239, 68, 68, 0.4);
+    display: none;
+    left: 0;
+    padding: 1rem 1.5rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 1rem;
+        top: 0.75rem;
+        font-size: 1.5rem;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+
+    #blazor-error-ui .dismiss:hover {
+        opacity: 1;
+    }

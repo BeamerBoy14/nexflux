@@ -1,0 +1,45 @@
+/* ============================================
+   TABLEAUX SIMPLIFIÉS
+   ============================================ */
+
+.table {
+    color: var(--text-primary);
+    border-collapse: collapse;
+}
+
+.table thead th {
+    background: linear-gradient(135deg, rgba(0, 0, 255, 0.2), rgba(0, 204, 255, 0.2));
+    border-bottom: 2px solid rgba(0, 204, 255, 0.3);
+    padding: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+}
+
+.table tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #ffffff !important;
+    background: transparent !important;
+}
+
+.table tbody td * {
+    color: #ffffff !important;
+}
+
+.table tbody td strong {
+    color: #ffffff !important;
+}
+
+/* Permettre les couleurs pour text-success et text-danger dans les cellules */
+.table tbody td.text-success,
+.table tbody td.text-success strong {
+    color: #10b981 !important;
+}
+
+.table tbody td.text-danger,
+.table tbody td.text-danger strong {
+    color: #ef4444 !important;
+}

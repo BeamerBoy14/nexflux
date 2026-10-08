@@ -22,17 +22,17 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">Mode d'affichage</label>
-                    <select class="form-select" @bind="viewMode">
+                    <label for="graphiques-champ-1" class="form-label">Mode d'affichage</label>
+                    <select id="graphiques-champ-1" class="form-select" @bind="viewMode">
                         <option value="Poste">Par Poste</option>
                         <option value="Voiture">Par Voiture</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">@(viewMode == "Poste" ? "Poste" : "Voiture") (optionnel)</label>
+                    <label for="graphiques-champ-2" class="form-label">@(viewMode == "Poste" ? "Poste" : "Voiture") (optionnel)</label>
                     @if (viewMode == "Poste")
                     {
-                        <select class="form-select" @bind="selectedPosteId">
+                        <select id="graphiques-champ-2" class="form-select" @bind="selectedPosteId">
                             <option value="">Tous les postes</option>
                             @foreach (var poste in postes)
                             {
@@ -52,12 +52,12 @@
                     }
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Date début</label>
-                    <InputDate class="form-control" @bind-Value="dateDebut" />
+                    <label for="graphiques-champ-3" class="form-label">Date début</label>
+                    <InputDate id="graphiques-champ-3" class="form-control" @bind-Value="dateDebut" />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Date fin</label>
-                    <InputDate class="form-control" @bind-Value="dateFin" />
+                    <label for="graphiques-champ-4" class="form-label">Date fin</label>
+                    <InputDate id="graphiques-champ-4" class="form-control" @bind-Value="dateFin" />
                 </div>
             </div>
             <div class="row mt-3">
@@ -93,7 +93,7 @@
                         }
                         else
                         {
-                            <i class="bi bi-graph-up me-2"></i>
+                            <i class="bi bi-graph-up me-2" aria-hidden="true"></i>
                             <text>Générer le graphique</text>
                         }
                     </button>
@@ -111,8 +111,8 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="chart-container" style="position: relative; height: 450px;">
-                <canvas id="depensesChart" style="max-width: 100%;"></canvas>
+            <div class="chart-container chart-container-tall">
+                <canvas id="depensesChart"></canvas>
             </div>
             @if (isGenerating && !chartData.Any())
             {

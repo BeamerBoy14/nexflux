@@ -1,0 +1,34 @@
+@using comptabilité.Services
+@inject VoitureLogoCatalog LogoCatalog
+
+@if (Version.HasValue)
+{
+    <img class="voiture-logo voiture-logo--@Size" src="api/voitures/@VoitureId/logo?v=@Version.Value.Ticks" alt="Logo de @Nom" />
+}
+else if (StaticLogo is not null)
+{
+    <img class="voiture-logo voiture-logo--@Size voiture-logo--static" src="@StaticLogo" alt="Logo de @Nom" />
+}
+else
+{
+    <span class="voiture-logo voiture-logo--@Size voiture-logo--fallback" aria-hidden="true">
+        <i class="bi bi-car-front-fill"></i>
+    </span>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int VoitureId { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Nom { get; set; } = string.Empty;
+
+    // Date d'envoi d'un logo personnalisé : absente = on utilise le logo du catalogue, sinon une icône
+    [Parameter]
+    public DateTime? Version { get; set; }
+
+    [Parameter]
+    public string Size { get; set; } = "md";
+
+    private string? StaticLogo => LogoCatalog.GetPath(Nom);
+}

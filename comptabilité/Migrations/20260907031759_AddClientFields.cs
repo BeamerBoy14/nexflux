@@ -11,29 +11,11 @@ namespace comptabilité.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<DateTime>(
-                name: "DateNaissance",
-                table: "Clients",
-                type: "datetime2",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "IdTel",
-                table: "Clients",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "NumeroIdd",
-                table: "Clients",
-                type: "nvarchar(max)",
-                nullable: true);
-
-            migrationBuilder.AddColumn<string>(
-                name: "NumeroPermis",
-                table: "Clients",
-                type: "nvarchar(max)",
-                nullable: true);
+            // Idempotent : certaines bases (dev local) ont déjà ces colonnes via add_client_fields.sql.
+            migrationBuilder.Sql("IF COL_LENGTH(N'Clients', N'DateNaissance') IS NULL ALTER TABLE [Clients] ADD [DateNaissance] datetime2 NULL;");
+            migrationBuilder.Sql("IF COL_LENGTH(N'Clients', N'IdTel') IS NULL ALTER TABLE [Clients] ADD [IdTel] nvarchar(max) NULL;");
+            migrationBuilder.Sql("IF COL_LENGTH(N'Clients', N'NumeroIdd') IS NULL ALTER TABLE [Clients] ADD [NumeroIdd] nvarchar(max) NULL;");
+            migrationBuilder.Sql("IF COL_LENGTH(N'Clients', N'NumeroPermis') IS NULL ALTER TABLE [Clients] ADD [NumeroPermis] nvarchar(max) NULL;");
         }
 
         /// <inheritdoc />

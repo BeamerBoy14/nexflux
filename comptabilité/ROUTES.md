@@ -52,6 +52,12 @@
 - **Description** : Gestion des voitures
 - **Protection** : Redirection vers `/login` si non connecté
 
+### Détails d'une voiture
+- **URL** : `/voitures/{voitureId:int}`
+- **Description** : Fiche d'une voiture (année, kilométrage, statistiques, dépenses par catégorie, bilan par année, historique des transactions)
+- **Exemple** : `/voitures/1`
+- **Protection** : Redirection vers `/login` si non connecté (seules les voitures de l'utilisateur sont accessibles)
+
 ### Graphiques
 - **URL** : `/graphiques`
 - **Description** : Graphiques et analyses de données

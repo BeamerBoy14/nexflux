@@ -1,0 +1,293 @@
+/* ============================================
+   VOITURES : LISTE CLIQUABLE ET PAGE DE DÉTAIL
+   ============================================ */
+
+/* La carte entière est cliquable grâce au lien du titre (stretched-link) */
+.inline-card--voiture {
+    position: relative;
+}
+
+.inline-card--voiture:hover {
+    cursor: pointer;
+}
+
+.inline-card--voiture:focus-within {
+    outline: 2px solid var(--blue-cyan);
+    outline-offset: 2px;
+}
+
+.inline-card--voiture .inline-card-actions {
+    position: relative;
+    z-index: 2;
+}
+
+.inline-card-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.inline-card-link:hover {
+    color: var(--blue-cyan);
+}
+
+.inline-card-link:focus-visible {
+    outline: none;
+}
+
+/* Dépenses par catégorie */
+.voiture-category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.voiture-category {
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: rgba(0, 0, 30, 0.4);
+    transition: border-color 0.3s ease;
+}
+
+.voiture-category[open] {
+    border-color: rgba(0, 204, 255, 0.35);
+}
+
+.voiture-category-summary {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 0.35rem 1rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.voiture-category-summary::-webkit-details-marker {
+    display: none;
+}
+
+.voiture-category-name {
+    font-weight: 600;
+}
+
+.voiture-category-name::before {
+    content: '\203A';
+    display: inline-block;
+    margin-right: 0.6rem;
+    color: var(--blue-cyan);
+    transition: transform 0.2s ease;
+}
+
+.voiture-category[open] .voiture-category-name::before {
+    transform: rotate(90deg);
+}
+
+.voiture-category-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.voiture-category-total {
+    font-weight: 700;
+    text-align: right;
+}
+
+.voiture-category-share {
+    min-width: 4.5rem;
+    color: var(--blue-cyan);
+    text-align: right;
+}
+
+.voiture-category-bar {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 8px;
+    appearance: none;
+    border: 0;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.voiture-category-bar::-webkit-progress-bar {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.voiture-category-bar::-webkit-progress-value {
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue-cyan), var(--blue-electric));
+}
+
+.voiture-category-bar::-moz-progress-bar {
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue-cyan), var(--blue-electric));
+}
+
+.voiture-category-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0 1rem 1rem;
+    list-style: none;
+}
+
+.voiture-category-items li {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr auto;
+    gap: 0.75rem;
+    padding: 0.45rem 0;
+    border-top: 1px solid rgba(0, 204, 255, 0.1);
+}
+
+.voiture-category-item-date {
+    color: var(--text-muted);
+}
+
+.voiture-category-item-amount {
+    font-weight: 600;
+    text-align: right;
+}
+
+@media (max-width: 575.98px) {
+    .voiture-category-summary {
+        grid-template-columns: 1fr auto;
+    }
+
+    .voiture-category-items li {
+        grid-template-columns: 1fr auto;
+    }
+
+    .voiture-category-item-date {
+        grid-column: 1 / -1;
+        font-size: 0.8rem;
+    }
+}
+
+/* Logo des voitures */
+.voiture-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 204, 255, 0.35);
+    border-radius: 16px;
+    background: rgba(0, 204, 255, 0.07);
+    box-shadow: 0 0 18px rgba(0, 204, 255, 0.15);
+    object-fit: contain;
+    padding: 0.4rem;
+}
+
+.voiture-logo--sm {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 12px;
+}
+
+.voiture-logo--md {
+    width: 5rem;
+    height: 5rem;
+}
+
+.voiture-logo--lg {
+    width: 6rem;
+    height: 6rem;
+    padding: 0.6rem;
+}
+
+.voiture-logo--fallback {
+    color: var(--blue-cyan);
+    font-size: 1.4rem;
+}
+
+.voiture-logo--md.voiture-logo--fallback {
+    font-size: 2rem;
+}
+
+.voiture-logo--lg.voiture-logo--fallback {
+    font-size: 2.6rem;
+}
+
+.voiture-card-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.voiture-card-head .inline-card-title {
+    margin-bottom: 0.15rem;
+}
+
+.voiture-logo-field {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.voiture-logo-actions {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 575.98px) {
+    .voiture-logo--lg {
+        width: 4.5rem;
+        height: 4.5rem;
+    }
+}
+
+/* Logo du catalogue : vectoriel, plus large que haut */
+.voiture-logo--static {
+    width: auto;
+}
+
+.voiture-logo--sm.voiture-logo--static {
+    max-width: 6.5rem;
+}
+
+.voiture-logo--md.voiture-logo--static {
+    max-width: 9rem;
+}
+
+.voiture-logo--lg.voiture-logo--static {
+    max-width: 11rem;
+}
+
+/* Grand logo en arrière-plan de la page d'une voiture */
+.voiture-backdrop {
+    position: fixed;
+    top: var(--header-h);
+    right: 0;
+    bottom: 0;
+    left: var(--sidebar-w);
+    z-index: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.voiture-backdrop img {
+    width: min(80%, 1100px);
+    max-height: 85%;
+    object-fit: contain;
+    opacity: 0.32;
+    filter: blur(2.5px) drop-shadow(0 0 28px rgba(0, 204, 255, 0.5));
+}
+
+.voiture-page {
+    position: relative;
+    z-index: 1;
+}
+
+/* Cartes plus translucides : le logo se devine à travers (le flou garde le texte lisible) */
+.voiture-page .card {
+    background: rgba(0, 0, 20, 0.55);
+}
+
+@media (max-width: 640.98px) {
+    .voiture-backdrop {
+        left: 0;
+    }
+}

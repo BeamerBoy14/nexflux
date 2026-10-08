@@ -1,109 +1,109 @@
 .login-container {
     min-height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: center;
     position: relative;
     overflow: hidden;
-    padding: 2rem;
     background: linear-gradient(180deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
 }
 
-.login-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+/* Deux tiers : vidéo */
+.login-media {
+    flex: 1;
+    position: relative;
     overflow: hidden;
-    z-index: 0;
+    background: radial-gradient(ellipse at 30% 40%, rgba(0, 102, 255, 0.35), transparent 60%),
+                linear-gradient(180deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
 }
 
-/* Cartes vertes animées */
-.floating-card {
+.login-video {
     position: absolute;
-    width: 200px;
-    height: 200px;
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(16, 185, 129, 0.15));
-    border: 2px solid rgba(34, 197, 94, 0.3);
-    border-radius: 20px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px rgba(34, 197, 94, 0.2);
-    animation: float 20s ease-in-out infinite;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-.floating-card-1 {
-    top: 10%;
-    left: 5%;
-    animation-delay: 0s;
-    animation-duration: 18s;
+.login-media-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 20, 0.2) 0%, rgba(0, 0, 20, 0.2) 65%, rgba(0, 0, 20, 0.7) 100%);
 }
 
-.floating-card-2 {
-    top: 60%;
-    right: 10%;
-    animation-delay: -4s;
-    animation-duration: 22s;
-    width: 150px;
-    height: 150px;
+/* Logos des voitures en fondu enchaîné très lent, derrière le formulaire (3 logos, cycle de 36 s, fondu de 6 s) */
+.login-logos {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
 }
 
-.floating-card-3 {
-    bottom: 15%;
-    left: 15%;
-    animation-delay: -8s;
-    animation-duration: 25s;
-    width: 180px;
-    height: 180px;
+.login-logo {
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    opacity: 0;
+    animation: login-logo-cycle 36s ease-in-out infinite both;
 }
 
-.floating-card-4 {
-    top: 30%;
-    right: 20%;
-    animation-delay: -12s;
-    animation-duration: 20s;
-    width: 120px;
-    height: 120px;
+.login-logo:nth-child(2) {
+    animation-delay: 12s;
 }
 
-.floating-card-5 {
-    bottom: 30%;
-    right: 5%;
-    animation-delay: -16s;
-    animation-duration: 24s;
-    width: 160px;
-    height: 160px;
+.login-logo:nth-child(3) {
+    animation-delay: 24s;
 }
 
-@keyframes float {
-    0%, 100% {
-        transform: translate(0, 0) rotate(0deg);
+.login-logo img {
+    width: min(96%, 440px);
+    height: auto;
+    max-height: 72vh;
+    object-fit: contain;
+    opacity: 0.55;
+    filter: blur(4px) drop-shadow(0 0 30px rgba(0, 204, 255, 0.55));
+}
+
+@keyframes login-logo-cycle {
+    0% {
+        opacity: 0;
     }
-    25% {
-        transform: translate(30px, -40px) rotate(5deg);
+    16.67% {
+        opacity: 1;
+    }
+    33.33% {
+        opacity: 1;
     }
     50% {
-        transform: translate(-20px, -60px) rotate(-5deg);
+        opacity: 0;
     }
-    75% {
-        transform: translate(40px, -30px) rotate(3deg);
+    100% {
+        opacity: 0;
     }
 }
 
-.login-content {
+/* Un tiers : connexion */
+.login-panel {
+    flex: 0 0 33.333%;
+    min-width: 380px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 3rem;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
+    border-left: 1px solid rgba(0, 204, 255, 0.25);
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.6);
+}
+
+/* Formulaire directement dans le panneau, sans carte */
+.login-card {
     position: relative;
     z-index: 1;
     width: 100%;
-    max-width: 450px;
-}
-
-.login-card {
-    background: var(--card-bg);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--card-border);
-    border-radius: 24px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
+    max-width: 380px;
     animation: fadeInUp 0.6s ease;
 }
 
@@ -119,20 +119,18 @@
 }
 
 .login-header {
-    background: linear-gradient(135deg, rgba(0, 0, 255, 0.2), rgba(0, 204, 255, 0.2));
-    border-bottom: 1px solid rgba(0, 204, 255, 0.2);
-    padding: 3rem 2rem 2rem;
+    padding: 0 0 2.5rem;
     text-align: center;
     position: relative;
 }
 
-.login-header::before {
+.login-header::after {
     content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    display: block;
+    width: 64px;
     height: 3px;
+    margin: 1.5rem auto 0;
+    border-radius: 3px;
     background: linear-gradient(90deg, var(--blue-cyan), var(--blue-electric));
     box-shadow: 0 0 20px rgba(0, 204, 255, 0.6);
 }
@@ -147,7 +145,7 @@
 }
 
 .login-subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
     color: var(--text-secondary);
     margin: 0;
     text-transform: uppercase;
@@ -156,7 +154,7 @@
 }
 
 .login-body {
-    padding: 2.5rem 2rem;
+    padding: 0;
 }
 
 .form-group {
@@ -167,18 +165,6 @@
     margin-bottom: 2rem;
 }
 
-.login-footer {
-    padding: 1.5rem 2rem;
-    text-align: center;
-    border-top: 1px solid rgba(0, 204, 255, 0.1);
-    background: rgba(0, 0, 20, 0.3);
-}
-
-.login-footer p {
-    margin: 0;
-    font-size: 0.85rem;
-}
-
 .w-100 {
     width: 100%;
 }
@@ -187,21 +173,58 @@
     margin-right: 0.5rem;
 }
 
+@media (max-width: 1280px) {
+    .login-title {
+        font-size: 2.3rem;
+        letter-spacing: 3px;
+    }
+}
+
+@media (max-width: 900px) {
+    .login-logo img {
+        width: min(80%, 420px);
+        opacity: 0.3;
+    }
+
+    .login-media {
+        position: absolute;
+        inset: 0;
+    }
+
+    .login-media-shade {
+        background: rgba(0, 0, 20, 0.45);
+    }
+
+    .login-panel {
+        flex: 1 1 100%;
+        min-width: 0;
+        background: rgba(0, 0, 20, 0.7);
+        backdrop-filter: blur(10px);
+        border-left: none;
+        box-shadow: none;
+    }
+}
+
 @media (max-width: 576px) {
-    .login-container {
-        padding: 1rem;
+    .login-panel {
+        padding: 1.5rem;
     }
 
     .login-title {
         font-size: 2rem;
     }
+}
 
-    .login-body {
-        padding: 2rem 1.5rem;
+@media (prefers-reduced-motion: reduce) {
+    .login-video {
+        display: none;
     }
 
-    .floating-card {
-        width: 120px;
-        height: 120px;
+    .login-logo {
+        animation: none;
+    }
+
+    .login-logo:first-child {
+        opacity: 1;
     }
 }

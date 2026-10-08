@@ -374,6 +374,9 @@ namespace comptabilité.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("Annee")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
@@ -383,6 +386,12 @@ namespace comptabilité.Migrations
                     b.Property<string>("Immatriculation")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<int?>("Kilometrage")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LogoUpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Nom")
                         .IsRequired()
@@ -397,6 +406,25 @@ namespace comptabilité.Migrations
                     b.HasIndex("UtilisateurId");
 
                     b.ToTable("Voitures");
+                });
+
+            modelBuilder.Entity("comptabilité.Models.VoitureLogo", b =>
+                {
+                    b.Property<int>("VoitureId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("VoitureId");
+
+                    b.ToTable("VoitureLogos");
                 });
 
             modelBuilder.Entity("comptabilité.Models.Client", b =>
@@ -514,6 +542,17 @@ namespace comptabilité.Migrations
                     b.Navigation("Utilisateur");
                 });
 
+            modelBuilder.Entity("comptabilité.Models.VoitureLogo", b =>
+                {
+                    b.HasOne("comptabilité.Models.Voiture", "Voiture")
+                        .WithOne("Logo")
+                        .HasForeignKey("comptabilité.Models.VoitureLogo", "VoitureId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voiture");
+                });
+
             modelBuilder.Entity("comptabilité.Models.Client", b =>
                 {
                     b.Navigation("Factures");
@@ -555,6 +594,8 @@ namespace comptabilité.Migrations
 
             modelBuilder.Entity("comptabilité.Models.Voiture", b =>
                 {
+                    b.Navigation("Logo");
+
                     b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618

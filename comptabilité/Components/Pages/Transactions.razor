@@ -26,8 +26,8 @@
         <div class="card-body">
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label class="form-label">Année</label>
-                    <select class="form-select" @bind="selectedYear" @bind:after="LoadRecap">
+                    <label for="transactions-champ-1" class="form-label">Année</label>
+                    <select id="transactions-champ-1" class="form-select" @bind="selectedYear" @bind:after="LoadRecap">
                         <option value="0">Toutes les années</option>
                         @foreach (var year in availableYears.OrderByDescending(y => y))
                         {
@@ -36,8 +36,8 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Type</label>
-                    <select class="form-select" @bind="selectedType" @bind:after="LoadRecap">
+                    <label for="transactions-champ-2" class="form-label">Type</label>
+                    <select id="transactions-champ-2" class="form-select" @bind="selectedType" @bind:after="LoadRecap">
                         <option value="">Tous</option>
                         <option value="Dépense">Dépenses</option>
                         <option value="Gain">Gains</option>
@@ -45,7 +45,7 @@
                 </div>
                 <div class="col-md-4 d-flex align-items-end">
                     <button class="btn btn-primary w-100" @onclick="ShowAddTransactionModal">
-                        <i class="bi bi-plus-circle"></i> Ajouter une transaction
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter une transaction
                     </button>
                 </div>
             </div>
@@ -75,13 +75,14 @@
                     {
                         <div class="table-responsive">
                             <table class="table table-striped">
+                                <caption class="visually-hidden">Récapitulatif mensuel des transactions</caption>
                                 <thead>
                                     <tr>
-                                        <th>Période</th>
-                                        <th class="text-end">Total Dépenses</th>
-                                        <th class="text-end">Total Gains</th>
-                                        <th class="text-end">Solde</th>
-                                        <th class="text-center">Actions</th>
+                                        <th scope="col">Période</th>
+                                        <th scope="col" class="text-end">Total Dépenses</th>
+                                        <th scope="col" class="text-end">Total Gains</th>
+                                        <th scope="col" class="text-end">Solde</th>
+                                        <th scope="col" class="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -130,7 +131,7 @@
                         @if (!selectedMonthFilter.HasValue)
                         {
                             <div class="month-details-empty text-center">
-                                <i class="bi bi-calendar4-week display-5 text-info mb-3"></i>
+                                <i class="bi bi-calendar4-week display-5 text-info mb-3" aria-hidden="true"></i>
                                 <p class="fw-semibold mb-2">Aucun mois sélectionné</p>
                                 <p class="text-muted mb-0">Cliquez sur « Détails » dans le tableau pour afficher les transactions.</p>
                             </div>
@@ -184,25 +185,25 @@
                                                     @if (transaction.Poste != null)
                                                     {
                                                         <span class="badge bg-info">
-                                                            <i class="bi bi-folder-fill me-1"></i>@transaction.Poste.Nom
+                                                            <i class="bi bi-folder-fill me-1" aria-hidden="true"></i>@transaction.Poste.Nom
                                                         </span>
                                                     }
                                                     @if (transaction.Client != null)
                                                     {
                                                         <span class="badge bg-warning text-dark">
-                                                            <i class="bi bi-person-vcard-fill me-1"></i>@transaction.Client.Nom @transaction.Client.Prenom
+                                                            <i class="bi bi-person-vcard-fill me-1" aria-hidden="true"></i>@transaction.Client.Nom @transaction.Client.Prenom
                                                         </span>
                                                     }
                                                     @if (transaction.Voiture != null)
                                                     {
                                                         <span class="badge bg-secondary">
-                                                            <i class="bi bi-car-front-fill me-1"></i>@transaction.Voiture.Nom
+                                                            <i class="bi bi-car-front-fill me-1" aria-hidden="true"></i>@transaction.Voiture.Nom
                                                         </span>
                                                     }
                                                 @if (transaction.Reservation != null)
                                                 {
                                                     <span class="badge bg-primary">
-                                                        <i class="bi bi-calendar-check me-1"></i>Réservation #@transaction.Reservation.Id
+                                                        <i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Réservation #@transaction.Reservation.Id
                                                     </span>
                                                 }
                                                 </div>
@@ -218,11 +219,11 @@
                                                     </span>
                                                 </div>
                                                 <div class="transaction-actions">
-                                                    <button class="btn btn-icon btn-outline-primary" @onclick="() => EditTransaction(transaction)" title="Modifier">
-                                                        <i class="bi bi-pencil"></i>
+                                                    <button class="btn btn-icon btn-outline-primary" @onclick="() => EditTransaction(transaction)" title="Modifier" aria-label="Modifier @transaction.Libelle">
+                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
                                                     </button>
-                                                    <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteTransaction(transaction)" title="Supprimer">
-                                                        <i class="bi bi-trash"></i>
+                                                    <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteTransaction(transaction)" title="Supprimer" aria-label="Supprimer @transaction.Libelle">
+                                                        <i class="bi bi-trash" aria-hidden="true"></i>
                                                     </button>
                                                 </div>
                                             </div>
@@ -233,7 +234,7 @@
                             else
                             {
                                 <div class="month-details-empty text-center">
-                                    <i class="bi bi-inbox display-6 text-muted mb-3"></i>
+                                    <i class="bi bi-inbox display-6 text-muted mb-3" aria-hidden="true"></i>
                                     <p class="fw-semibold mb-2">Aucune transaction</p>
                                     <p class="text-muted mb-0">Aucune donnée n'est disponible pour ce mois.</p>
                                 </div>
@@ -249,12 +250,12 @@
 <!-- Modal pour ajouter/éditer une transaction -->
 @if (showModal)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-backdrop-custom" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(currentTransaction.Id == 0 ? "Ajouter" : "Modifier") une transaction</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    <h5 class="modal-title" id="modal-title">@(currentTransaction.Id == 0 ? "Ajouter" : "Modifier") une transaction</h5>
+                    <button type="button" class="btn-close" aria-label="Fermer" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
                     @if (!string.IsNullOrEmpty(statusMessage))
@@ -266,27 +267,27 @@
                     <EditForm Model="currentTransaction" OnValidSubmit="SaveTransaction">
                         <DataAnnotationsValidator />
                         <div class="mb-3">
-                            <label class="form-label">Date *</label>
-                            <InputDate class="form-control" @bind-Value="currentTransaction.Date" />
+                            <label for="transactions-champ-3" class="form-label">Date *</label>
+                            <InputDate id="transactions-champ-3" class="form-control" @bind-Value="currentTransaction.Date" />
                             <ValidationMessage For="@(() => currentTransaction.Date)" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Type *</label>
-                            <select class="form-select" @bind="currentTransaction.Type" @bind:after="OnTypeChanged">
+                            <label for="transactions-champ-4" class="form-label">Type *</label>
+                            <select id="transactions-champ-4" class="form-select" @bind="currentTransaction.Type" @bind:after="OnTypeChanged">
                                 <option value="Dépense">Dépense</option>
                                 <option value="Gain">Gain</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Libellé @(currentTransaction.Type == "Gain" ? "*" : "(optionnel)")</label>
-                            <InputText class="form-control" @bind-Value="currentTransaction.Libelle" />
+                            <label for="transactions-champ-5" class="form-label">Libellé @(currentTransaction.Type == "Gain" ? "*" : "(optionnel)")</label>
+                            <InputText id="transactions-champ-5" class="form-control" @bind-Value="currentTransaction.Libelle" />
                             <ValidationMessage For="@(() => currentTransaction.Libelle)" />
                         </div>
                         @if (currentTransaction.Type == "Dépense")
                         {
                             <div class="mb-3">
-                                <label class="form-label">Poste de dépense</label>
-                                <select class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
+                                <label for="transactions-champ-6" class="form-label">Poste de dépense</label>
+                                <select id="transactions-champ-6" class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
                                     <option value="">Aucun poste</option>
                                     @foreach (var poste in postes)
                                     {
@@ -297,8 +298,8 @@
                             @if (selectedPoste != null && selectedPoste.PeutAvoirVoiture)
                             {
                                 <div class="mb-3">
-                                    <label class="form-label">Voiture</label>
-                                    <select class="form-select" @bind="selectedVoitureId">
+                                    <label for="transactions-champ-7" class="form-label">Voiture</label>
+                                    <select id="transactions-champ-7" class="form-select" @bind="selectedVoitureId">
                                         <option value="">Aucune voiture</option>
                                         @foreach (var voiture in voitures)
                                         {
@@ -311,8 +312,8 @@
                         else if (currentTransaction.Type == "Gain")
                         {
                             <div class="mb-3">
-                                <label class="form-label">Client *</label>
-                                <select class="form-select" @bind="selectedClientId" @bind:after="OnGainClientChanged">
+                                <label for="transactions-champ-8" class="form-label">Client *</label>
+                                <select id="transactions-champ-8" class="form-select" @bind="selectedClientId" @bind:after="OnGainClientChanged">
                                     <option value="">Sélectionner un client</option>
                                     @foreach (var client in clients)
                                     {
@@ -321,8 +322,8 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Poste de dépense</label>
-                                <select class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
+                                <label for="transactions-champ-9" class="form-label">Poste de dépense</label>
+                                <select id="transactions-champ-9" class="form-select" @bind="selectedPosteId" @bind:after="OnPosteChanged">
                                     <option value="">Aucun poste</option>
                                     @foreach (var poste in postes)
                                     {
@@ -331,8 +332,8 @@
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Voiture</label>
-                                <select class="form-select" @bind="selectedVoitureId">
+                                <label for="transactions-champ-10" class="form-label">Voiture</label>
+                                <select id="transactions-champ-10" class="form-select" @bind="selectedVoitureId">
                                     <option value="">Aucune voiture</option>
                                     @foreach (var voiture in voitures)
                                     {
@@ -345,7 +346,7 @@
                         {
                             var availableReservations = GetAvailableReservations().ToList();
                             <div class="mb-3">
-                                <label class="form-label">Réservation associée</label>
+                                <label class="form-label" id="transactions-reservation-label">Réservation associée</label>
                                 @if (!availableReservations.Any())
                                 {
                                     <div class="form-text">
@@ -354,7 +355,7 @@
                                 }
                                 else
                                 {
-                                    <InputSelect class="form-select" @bind-Value="currentTransaction.ReservationId" TValue="int?">
+                                    <InputSelect class="form-select" aria-labelledby="transactions-reservation-label" @bind-Value="currentTransaction.ReservationId" TValue="int?">
                                         <option value="">Aucune réservation</option>
                                         @foreach (var reservation in availableReservations)
                                         {
@@ -365,13 +366,13 @@
                             </div>
                         }
                         <div class="mb-3">
-                            <label class="form-label">Montant *</label>
-                            <InputNumber class="form-control" @bind-Value="currentTransaction.Montant" />
+                            <label for="transactions-champ-11" class="form-label">Montant *</label>
+                            <InputNumber id="transactions-champ-11" class="form-control" @bind-Value="currentTransaction.Montant" />
                             <ValidationMessage For="@(() => currentTransaction.Montant)" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <InputTextArea class="form-control" @bind-Value="currentTransaction.Description" rows="3" />
+                            <label for="transactions-champ-12" class="form-label">Description</label>
+                            <InputTextArea id="transactions-champ-12" class="form-control" @bind-Value="currentTransaction.Description" rows="3" />
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-secondary" @onclick="CloseModal">Annuler</button>

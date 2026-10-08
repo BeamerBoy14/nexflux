@@ -1,0 +1,145 @@
+/* ============================================
+   DESIGN MODERNE - INSPIRÉ DE L'IMAGE
+   ============================================ */
+
+/* Variables CSS pour les couleurs - Palette originale */
+:root {
+    /* Palette bleue électrique - Extrait de l'image */
+    --blue-deep: #000033;      /* Bleu marine foncé (bords) */
+    --blue-dark: #000066;      /* Bleu marine foncé */
+    --blue-electric: #0000FF;  /* Bleu électrique vif (cœur des formes) */
+    --blue-vivid: #0000CC;     /* Bleu électrique vif */
+    --blue-cyan: #00FFFF;      /* Bleu clair/cyan lumineux (points forts) */
+    --blue-light: #00CCFF;     /* Bleu clair/cyan */
+    --black-deep: #000000;     /* Noir profond */
+    
+    /* Couleurs d'accent (adaptées pour le contraste) */
+    --primary-purple: #8B5CF6;
+    --primary-blue: #0066FF;
+    --accent-cyan: #00CCFF;
+    --accent-pink: #FF00CC;
+    
+    /* Fond et cartes */
+    --dark-bg-start: #000000;
+    --dark-bg-end: #000011;
+    --card-bg: rgba(0, 0, 20, 0.85);
+    --card-border: rgba(0, 204, 255, 0.15);
+    --text-primary: #ffffff;
+    --text-secondary: #88aaff;
+    --text-muted: #4477cc;
+
+    /* Dimensions de la coque de l'application */
+    --header-h: 3.75rem;
+    --sidebar-w: 280px;
+}
+
+html, body {
+    font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    /* Deux halos très discrets (fixes) dans la zone de contenu, par-dessus le dégradé de fond */
+    background:
+        radial-gradient(900px circle at 80% 8%, rgba(0, 102, 255, 0.16), transparent 60%),
+        radial-gradient(800px circle at 40% 96%, rgba(0, 204, 255, 0.11), transparent 60%),
+        linear-gradient(180deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* ============================================
+   ÉCRAN DE CHARGEMENT (SPLASH)
+   ============================================ */
+
+.app-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    background: radial-gradient(circle at 50% 38%, #051736 0%, #00081c 55%, #000008 100%);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.app-loading--hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.app-loading__spinner {
+    position: relative;
+    width: 90px;
+    height: 90px;
+}
+
+.app-loading__spinner::before,
+.app-loading__spinner::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+.app-loading__spinner::before {
+    inset: 0;
+    border-top-color: var(--blue-cyan);
+    border-right-color: var(--blue-cyan);
+    box-shadow: 0 0 25px rgba(0, 204, 255, 0.45);
+    animation: app-loading-spin 1s linear infinite;
+}
+
+.app-loading__spinner::after {
+    inset: 14px;
+    border-bottom-color: var(--blue-electric);
+    border-left-color: var(--blue-electric);
+    box-shadow: 0 0 18px rgba(0, 0, 255, 0.4);
+    animation: app-loading-spin 1.5s linear infinite reverse;
+}
+
+@keyframes app-loading-spin {
+    to { transform: rotate(360deg); }
+}
+
+.app-loading__logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-left: 0.35em;
+    animation: app-loading-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes app-loading-pulse {
+    0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 6px rgba(0, 204, 255, 0.3)); }
+    50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(0, 204, 255, 0.7)); }
+}
+
+.app-loading__text {
+    font-size: 0.85rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.app-loading__dots::after {
+    content: '';
+    animation: app-loading-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes app-loading-dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+}
+

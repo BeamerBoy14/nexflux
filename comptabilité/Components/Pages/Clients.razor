@@ -18,7 +18,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestion des Clients</h2>
         <button class="btn btn-primary" @onclick="ShowAddModal">
-            <i class="bi bi-plus-circle"></i> Ajouter un client
+            <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un client
         </button>
     </div>
 
@@ -59,13 +59,13 @@
                                 @if (!string.IsNullOrWhiteSpace(client.Email))
                                 {
                                     <span class="badge bg-info">
-                                        <i class="bi bi-envelope-fill me-1"></i>@client.Email
+                                        <i class="bi bi-envelope-fill me-1" aria-hidden="true"></i>@client.Email
                                     </span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(client.Telephone))
                                 {
                                     <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-telephone-fill me-1"></i>@client.Telephone
+                                        <i class="bi bi-telephone-fill me-1" aria-hidden="true"></i>@client.Telephone
                                     </span>
                                 }
                             </div>
@@ -101,11 +101,11 @@
                             </div>
                         </div>
                         <div class="inline-card-actions">
-                            <button class="btn btn-icon btn-outline-primary" @onclick="() => EditClient(client)" @onclick:stopPropagation="true" title="Modifier">
-                                <i class="bi bi-pencil"></i>
+                            <button class="btn btn-icon btn-outline-primary" @onclick="() => EditClient(client)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @client.Nom">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
                             </button>
-                            <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteClient(client)" @onclick:stopPropagation="true" title="Supprimer">
-                                <i class="bi bi-trash"></i>
+                            <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteClient(client)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @client.Nom">
+                                <i class="bi bi-trash" aria-hidden="true"></i>
                             </button>
                         </div>
                     </div>
@@ -119,9 +119,8 @@
                         <span class="text-muted">Page @currentPage sur @totalPages (@clients.Count client(s) au total)</span>
                     </div>
                     <div class="d-flex gap-2 align-items-center">
-                        <label class="form-label mb-0">Page :</label>
-                        <select class="form-select form-select-sm" 
-                                style="width: auto; min-width: 100px;" 
+                        <label for="clients-champ-1" class="form-label mb-0">Page :</label>
+                        <select id="clients-champ-1" class="form-select form-select-sm select-auto" aria-label="Page"
                                 @onchange="OnPageChanged"
                                 value="@currentPage">
                             @for (int i = 1; i <= totalPages; i++)
@@ -136,7 +135,7 @@
         else
             {
                 <div class="client-card-empty text-center text-muted">
-                    <i class="bi bi-people display-6 mb-3"></i>
+                    <i class="bi bi-people display-6 mb-3" aria-hidden="true"></i>
                     <p class="fw-semibold mb-1">Aucun client enregistré</p>
                     <p class="mb-0">Ajoutez votre premier client pour commencer.</p>
                 </div>
@@ -148,12 +147,12 @@
 <!-- Modal -->
 @if (showModal)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-backdrop-custom" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(currentClient.Id == 0 ? "Ajouter" : "Modifier") un client</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    <h5 class="modal-title" id="modal-title">@(currentClient.Id == 0 ? "Ajouter" : "Modifier") un client</h5>
+                    <button type="button" class="btn-close" aria-label="Fermer" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
                     @if (!string.IsNullOrEmpty(errorMessage))
@@ -166,56 +165,56 @@
                         <DataAnnotationsValidator />
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Nom *</label>
-                                <InputText class="form-control" @bind-Value="currentClient.Nom" />
+                                <label for="clients-champ-2" class="form-label">Nom *</label>
+                                <InputText id="clients-champ-2" class="form-control" @bind-Value="currentClient.Nom" />
                                 <ValidationMessage For="@(() => currentClient.Nom)" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Prénom</label>
-                                <InputText class="form-control" @bind-Value="currentClient.Prenom" />
+                                <label for="clients-champ-3" class="form-label">Prénom</label>
+                                <InputText id="clients-champ-3" class="form-control" @bind-Value="currentClient.Prenom" />
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Email *</label>
-                            <InputText type="email" class="form-control" @bind-Value="currentClient.Email" />
+                            <label for="clients-champ-4" class="form-label">Email *</label>
+                            <InputText id="clients-champ-4" type="email" class="form-control" @bind-Value="currentClient.Email" />
                             <ValidationMessage For="@(() => currentClient.Email)" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Téléphone</label>
-                            <InputText class="form-control" @bind-Value="currentClient.Telephone" />
+                            <label for="clients-champ-5" class="form-label">Téléphone</label>
+                            <InputText id="clients-champ-5" class="form-control" @bind-Value="currentClient.Telephone" />
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Numéro ID</label>
-                                <InputText class="form-control" @bind-Value="currentClient.NumeroIdd" />
+                                <label for="clients-champ-6" class="form-label">Numéro ID</label>
+                                <InputText id="clients-champ-6" class="form-control" @bind-Value="currentClient.NumeroIdd" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Numéro Permis</label>
-                                <InputText class="form-control" @bind-Value="currentClient.NumeroPermis" />
+                                <label for="clients-champ-7" class="form-label">Numéro Permis</label>
+                                <InputText id="clients-champ-7" class="form-control" @bind-Value="currentClient.NumeroPermis" />
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Date de Naissance</label>
-                                <InputDate class="form-control" @bind-Value="currentClient.DateNaissance" />
+                                <label for="clients-champ-8" class="form-label">Date de Naissance</label>
+                                <InputDate id="clients-champ-8" class="form-control" @bind-Value="currentClient.DateNaissance" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">ID Tel</label>
-                                <InputText class="form-control" @bind-Value="currentClient.IdTel" />
+                                <label for="clients-champ-9" class="form-label">ID Tel</label>
+                                <InputText id="clients-champ-9" class="form-control" @bind-Value="currentClient.IdTel" />
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Adresse</label>
-                            <InputText class="form-control" @bind-Value="currentClient.Adresse" />
+                            <label for="clients-champ-10" class="form-label">Adresse</label>
+                            <InputText id="clients-champ-10" class="form-control" @bind-Value="currentClient.Adresse" />
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Code Postal</label>
-                                <InputText class="form-control" @bind-Value="currentClient.CodePostal" />
+                                <label for="clients-champ-11" class="form-label">Code Postal</label>
+                                <InputText id="clients-champ-11" class="form-control" @bind-Value="currentClient.CodePostal" />
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Ville</label>
-                                <InputText class="form-control" @bind-Value="currentClient.Ville" />
+                                <label for="clients-champ-12" class="form-label">Ville</label>
+                                <InputText id="clients-champ-12" class="form-control" @bind-Value="currentClient.Ville" />
                             </div>
                         </div>
                         <div class="d-flex justify-content-end gap-2">

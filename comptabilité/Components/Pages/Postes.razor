@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestion des Postes de Dépense</h2>
         <button class="btn btn-primary" @onclick="ShowAddModal">
-            <i class="bi bi-plus-circle"></i> Ajouter un poste
+            <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un poste
         </button>
     </div>
 
@@ -60,11 +60,11 @@
                                 </div>
                             </div>
                             <div class="inline-card-actions">
-                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditPoste(poste)" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
+                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditPoste(poste)" title="Modifier" aria-label="Modifier @poste.Nom">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i>
                                 </button>
-                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeletePoste(poste)" title="Supprimer">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeletePoste(poste)" title="Supprimer" aria-label="Supprimer @poste.Nom">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -74,7 +74,7 @@
             else
             {
                 <div class="inline-card-empty text-center text-muted">
-                    <i class="bi bi-stack display-6 mb-3"></i>
+                    <i class="bi bi-stack display-6 mb-3" aria-hidden="true"></i>
                     <p class="fw-semibold mb-1">Aucun poste enregistré</p>
                     <p class="mb-0">Ajoutez un poste pour organiser vos dépenses.</p>
                 </div>
@@ -86,24 +86,24 @@
 <!-- Modal -->
 @if (showModal)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-backdrop-custom" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(currentPoste.Id == 0 ? "Ajouter" : "Modifier") un poste</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    <h5 class="modal-title" id="modal-title">@(currentPoste.Id == 0 ? "Ajouter" : "Modifier") un poste</h5>
+                    <button type="button" class="btn-close" aria-label="Fermer" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
                     <EditForm Model="currentPoste" OnValidSubmit="SavePoste">
                         <DataAnnotationsValidator />
                         <div class="mb-3">
-                            <label class="form-label">Nom *</label>
-                            <InputText class="form-control" @bind-Value="currentPoste.Nom" />
+                            <label for="postes-champ-1" class="form-label">Nom *</label>
+                            <InputText id="postes-champ-1" class="form-control" @bind-Value="currentPoste.Nom" />
                             <ValidationMessage For="@(() => currentPoste.Nom)" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <InputTextArea class="form-control" @bind-Value="currentPoste.Description" rows="3" />
+                            <label for="postes-champ-2" class="form-label">Description</label>
+                            <InputTextArea id="postes-champ-2" class="form-control" @bind-Value="currentPoste.Description" rows="3" />
                         </div>
                         <div class="mb-3">
                             <div class="form-check">

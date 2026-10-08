@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestion des Voitures</h2>
         <button class="btn btn-primary" @onclick="ShowAddModal">
-            <i class="bi bi-plus-circle"></i> Ajouter une voiture
+            <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter une voiture
         </button>
     </div>
 
@@ -42,8 +42,15 @@
                     {
                         <div class="inline-card inline-card--voiture">
                             <div class="inline-card-overview">
-                                <h5 class="inline-card-title">@voiture.Nom</h5>
-                                <span class="inline-card-date">Véhicule enregistré</span>
+                                <div class="voiture-card-head">
+                                    <VoitureLogoBadge VoitureId="voiture.Id" Nom="@voiture.Nom" Version="voiture.LogoUpdatedAt" Size="sm" />
+                                    <div>
+                                        <h5 class="inline-card-title">
+                                            <a class="inline-card-link stretched-link" href="voitures/@voiture.Id">@voiture.Nom</a>
+                                        </h5>
+                                        <span class="inline-card-date">Voir le détail et les dépenses <i class="bi bi-chevron-right" aria-hidden="true"></i></span>
+                                    </div>
+                                </div>
                                 @if (!string.IsNullOrWhiteSpace(voiture.Description))
                                 {
                                     <p class="inline-card-description">@voiture.Description</p>
@@ -54,13 +61,21 @@
                                     <span class="inline-card-detail-label">Immatriculation</span>
                                     <span class="inline-card-detail-value">@FormatValue(voiture.Immatriculation)</span>
                                 </div>
+                                <div class="inline-card-detail">
+                                    <span class="inline-card-detail-label">Année</span>
+                                    <span class="inline-card-detail-value">@(voiture.Annee?.ToString() ?? "-")</span>
+                                </div>
+                                <div class="inline-card-detail">
+                                    <span class="inline-card-detail-label">Kilométrage</span>
+                                    <span class="inline-card-detail-value">@FormatKilometrage(voiture.Kilometrage)</span>
+                                </div>
                             </div>
                             <div class="inline-card-actions">
-                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditVoiture(voiture)" title="Modifier">
-                                    <i class="bi bi-pencil"></i>
+                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditVoiture(voiture)" title="Modifier" aria-label="Modifier @voiture.Nom">
+                                    <i class="bi bi-pencil" aria-hidden="true"></i>
                                 </button>
-                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteVoiture(voiture)" title="Supprimer">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteVoiture(voiture)" title="Supprimer" aria-label="Supprimer @voiture.Nom">
+                                    <i class="bi bi-trash" aria-hidden="true"></i>
                                 </button>
                             </div>
                         </div>
@@ -70,7 +85,7 @@
             else
             {
                 <div class="inline-card-empty text-center text-muted">
-                    <i class="bi bi-car-front-fill display-6 mb-3"></i>
+                    <i class="bi bi-car-front-fill display-6 mb-3" aria-hidden="true"></i>
                     <p class="fw-semibold mb-1">Aucune voiture enregistrée</p>
                     <p class="mb-0">Ajoutez votre premier véhicule pour commencer.</p>
                 </div>
@@ -82,28 +97,69 @@
 <!-- Modal -->
 @if (showModal)
 {
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal show d-block modal-backdrop-custom" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">@(currentVoiture.Id == 0 ? "Ajouter" : "Modifier") une voiture</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                    <h5 class="modal-title" id="modal-title">@(currentVoiture.Id == 0 ? "Ajouter" : "Modifier") une voiture</h5>
+                    <button type="button" class="btn-close" aria-label="Fermer" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
                     <EditForm Model="currentVoiture" OnValidSubmit="SaveVoiture">
                         <DataAnnotationsValidator />
                         <div class="mb-3">
-                            <label class="form-label">Nom *</label>
-                            <InputText class="form-control" @bind-Value="currentVoiture.Nom" placeholder="Ex: Mustang, Corvette..." />
+                            <label for="voitures-champ-1" class="form-label">Nom *</label>
+                            <InputText id="voitures-champ-1" class="form-control" @bind-Value="currentVoiture.Nom" placeholder="Ex: Mustang, Corvette..." />
                             <ValidationMessage For="@(() => currentVoiture.Nom)" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Immatriculation</label>
-                            <InputText class="form-control" @bind-Value="currentVoiture.Immatriculation" />
+                            <label for="voitures-champ-2" class="form-label">Immatriculation</label>
+                            <InputText id="voitures-champ-2" class="form-control" @bind-Value="currentVoiture.Immatriculation" />
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label for="voitures-annee" class="form-label">Année</label>
+                                <InputNumber id="voitures-annee" class="form-control" @bind-Value="currentVoiture.Annee" placeholder="Ex: 1969" />
+                                <ValidationMessage For="@(() => currentVoiture.Annee)" />
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label for="voitures-kilometrage" class="form-label">Kilométrage (km)</label>
+                                <InputNumber id="voitures-kilometrage" class="form-control" @bind-Value="currentVoiture.Kilometrage" placeholder="Ex: 85000" />
+                                <ValidationMessage For="@(() => currentVoiture.Kilometrage)" />
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <InputTextArea class="form-control" @bind-Value="currentVoiture.Description" rows="3" />
+                            <label for="voitures-logo" class="form-label">Logo</label>
+                            <div class="voiture-logo-field">
+                                @if (!string.IsNullOrEmpty(pendingLogoPreview))
+                                {
+                                    <img class="voiture-logo voiture-logo--md" src="@pendingLogoPreview" alt="Aperçu du logo" />
+                                }
+                                else if (currentVoiture.Id != 0 && currentVoiture.LogoUpdatedAt.HasValue && !removeLogo)
+                                {
+                                    <VoitureLogoBadge VoitureId="currentVoiture.Id" Nom="@currentVoiture.Nom" Version="currentVoiture.LogoUpdatedAt" Size="md" />
+                                }
+                                else
+                                {
+                                    <VoitureLogoBadge VoitureId="currentVoiture.Id" Nom="@currentVoiture.Nom" Version="null" Size="md" />
+                                }
+                                <div class="voiture-logo-actions">
+                                    <InputFile id="voitures-logo" class="form-control" accept=".png,.jpg,.jpeg,.webp,.gif" OnChange="OnLogoSelected" />
+                                    <div class="form-text">PNG, JPG, WEBP ou GIF · 2 Mo maximum</div>
+                                    @if (!string.IsNullOrEmpty(logoError))
+                                    {
+                                        <div class="text-danger small" role="alert">@logoError</div>
+                                    }
+                                    @if (HasLogoToRemove)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline-danger mt-2" @onclick="RemoveLogo">Retirer le logo</button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="voitures-champ-3" class="form-label">Description</label>
+                            <InputTextArea id="voitures-champ-3" class="form-control" @bind-Value="currentVoiture.Description" rows="3" />
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-secondary" @onclick="CloseModal">Annuler</button>
@@ -121,6 +177,15 @@
     private bool showModal = false;
     private Voiture currentVoiture = new();
     private bool isLoading = true;
+
+    private byte[]? pendingLogo;
+    private string? pendingLogoType;
+    private string? pendingLogoPreview;
+    private bool removeLogo;
+    private string? logoError;
+
+    private bool HasLogoToRemove =>
+        pendingLogo is not null || (currentVoiture.LogoUpdatedAt.HasValue && !removeLogo);
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,17 +213,22 @@
 
     private void ShowAddModal()
     {
+        ResetLogoState();
         currentVoiture = new Voiture();
         showModal = true;
     }
 
     private void EditVoiture(Voiture voiture)
     {
+        ResetLogoState();
         currentVoiture = new Voiture
         {
+            LogoUpdatedAt = voiture.LogoUpdatedAt,
             Id = voiture.Id,
             Nom = voiture.Nom,
             Immatriculation = voiture.Immatriculation,
+            Annee = voiture.Annee,
+            Kilometrage = voiture.Kilometrage,
             Description = voiture.Description
         };
         showModal = true;
@@ -175,11 +245,14 @@
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
 
+        Voiture target;
+
         if (currentVoiture.Id == 0)
         {
             // Nouvelle voiture : définir l'UtilisateurId
             currentVoiture.UtilisateurId = userId.Value;
             db.Voitures.Add(currentVoiture);
+            target = currentVoiture;
         }
         else
         {
@@ -193,12 +266,20 @@
                 }
                 existing.Nom = currentVoiture.Nom;
                 existing.Immatriculation = currentVoiture.Immatriculation;
+                existing.Annee = currentVoiture.Annee;
+                existing.Kilometrage = currentVoiture.Kilometrage;
                 existing.Description = currentVoiture.Description;
                 db.Voitures.Update(existing);
+                target = existing;
+            }
+            else
+            {
+                return;
             }
         }
 
         await db.SaveChangesAsync();
+        await ApplyLogoChangesAsync(db, target);
         CloseModal();
         await LoadVoitures();
     }
@@ -229,12 +310,104 @@
         await LoadVoitures();
     }
 
+    private async Task ApplyLogoChangesAsync(ComptabiliteDbContext db, Voiture target)
+    {
+        if (pendingLogo is not null && pendingLogoType is not null)
+        {
+            var logo = await db.VoitureLogos.FindAsync(target.Id);
+            if (logo is null)
+            {
+                db.VoitureLogos.Add(new VoitureLogo { VoitureId = target.Id, Data = pendingLogo, ContentType = pendingLogoType });
+            }
+            else
+            {
+                logo.Data = pendingLogo;
+                logo.ContentType = pendingLogoType;
+            }
+
+            target.LogoUpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
+        else if (removeLogo)
+        {
+            var logo = await db.VoitureLogos.FindAsync(target.Id);
+            if (logo is not null)
+            {
+                db.VoitureLogos.Remove(logo);
+            }
+
+            target.LogoUpdatedAt = null;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task OnLogoSelected(InputFileChangeEventArgs e)
+    {
+        logoError = null;
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        if (file.Size > LogoImage.MaxBytes)
+        {
+            logoError = "Le fichier dépasse 2 Mo.";
+            return;
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream(LogoImage.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            var data = buffer.ToArray();
+
+            if (!LogoImage.TryGetContentType(data, out var contentType))
+            {
+                logoError = "Format non reconnu. Utilisez PNG, JPG, WEBP ou GIF.";
+                return;
+            }
+
+            pendingLogo = data;
+            pendingLogoType = contentType;
+            pendingLogoPreview = $"data:{contentType};base64,{Convert.ToBase64String(data)}";
+            removeLogo = false;
+        }
+        catch (IOException)
+        {
+            logoError = "Impossible de lire ce fichier.";
+        }
+    }
+
+    private void RemoveLogo()
+    {
+        pendingLogo = null;
+        pendingLogoType = null;
+        pendingLogoPreview = null;
+        removeLogo = true;
+        logoError = null;
+    }
+
+    private void ResetLogoState()
+    {
+        pendingLogo = null;
+        pendingLogoType = null;
+        pendingLogoPreview = null;
+        removeLogo = false;
+        logoError = null;
+    }
+
     private void CloseModal()
     {
         showModal = false;
         currentVoiture = new();
+        ResetLogoState();
     }
 
     private string FormatValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
+
+    private string FormatKilometrage(int? km) =>
+        km.HasValue ? string.Format(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), "{0:N0} km", km.Value) : "-";
 }
 
