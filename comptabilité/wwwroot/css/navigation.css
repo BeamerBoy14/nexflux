@@ -75,3 +75,11 @@
     transform: scaleY(1);
 }
 
+/* Logo devant le nom dans l'en-tête */
+.brand-mark {
+    width: 1.9rem;
+    height: 1.9rem;
+    margin-right: 0.7rem;
+    vertical-align: -0.5rem;
+    filter: drop-shadow(0 0 8px rgba(0, 204, 255, 0.45));
+}
