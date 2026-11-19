@@ -11,136 +11,169 @@
 
 <PageTitle>Graphiques - Dépenses et Gains</PageTitle>
 
-<div class="container mt-4">
-    <h2 class="mb-4">Graphiques des Dépenses et Gains</h2>
+<div class="container mt-4 gr-page">
+    <div class="gr-header">
+        <div>
+            <h2 class="gr-title">Graphiques</h2>
+            <p class="gr-subtitle">@PeriodDescription</p>
+        </div>
+        <span class="gr-live" role="status" aria-live="polite">
+            @if (isGenerating)
+            {
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span>Mise à jour…</span>
+            }
+            else
+            {
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                <span>À jour</span>
+            }
+        </span>
+    </div>
+
+    <!-- Synthèse de la sélection -->
+    <div class="gr-kpis">
+        <div class="gr-kpi gr-kpi--expense">
+            <span class="gr-kpi-label">Dépenses</span>
+            <span class="gr-kpi-value">@SignedMontant(TotalDepenses, '-')</span>
+        </div>
+        <div class="gr-kpi gr-kpi--income">
+            <span class="gr-kpi-label">Gains</span>
+            <span class="gr-kpi-value">@SignedMontant(TotalGains, '+')</span>
+        </div>
+        <div class="gr-kpi @(Solde >= 0 ? "gr-kpi--income" : "gr-kpi--expense")">
+            <span class="gr-kpi-label">Solde net</span>
+            <span class="gr-kpi-value">@SignedMontant(Math.Abs(Solde), Solde >= 0 ? '+' : '-')</span>
+        </div>
+    </div>
 
     <!-- Filtres -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Filtres</h5>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label for="graphiques-champ-1" class="form-label">Mode d'affichage</label>
-                    <select id="graphiques-champ-1" class="form-select" @bind="viewMode">
-                        <option value="Poste">Par Poste</option>
-                        <option value="Voiture">Par Voiture</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="graphiques-champ-2" class="form-label">@(viewMode == "Poste" ? "Poste" : "Voiture") (optionnel)</label>
-                    @if (viewMode == "Poste")
-                    {
-                        <select id="graphiques-champ-2" class="form-select" @bind="selectedPosteId">
-                            <option value="">Tous les postes</option>
-                            @foreach (var poste in postes)
-                            {
-                                <option value="@poste.Id">@poste.Nom</option>
-                            }
-                        </select>
-                    }
-                    else
-                    {
-                        <select class="form-select" @bind="selectedVoitureId">
-                            <option value="">Toutes les voitures</option>
-                            @foreach (var voiture in voitures)
-                            {
-                                <option value="@voiture.Id">@voiture.Nom</option>
-                            }
-                        </select>
-                    }
-                </div>
-                <div class="col-md-3">
-                    <label for="graphiques-champ-3" class="form-label">Date début</label>
-                    <InputDate id="graphiques-champ-3" class="form-control" @bind-Value="dateDebut" />
-                </div>
-                <div class="col-md-3">
-                    <label for="graphiques-champ-4" class="form-label">Date fin</label>
-                    <InputDate id="graphiques-champ-4" class="form-control" @bind-Value="dateFin" />
-                </div>
+    <div class="gr-toolbar">
+        <div class="gr-field">
+            <span class="gr-field-label" id="gr-mode-label">Regrouper</span>
+            <div class="gr-segmented" role="group" aria-labelledby="gr-mode-label">
+                <button type="button" class="@Seg(viewMode == "Poste")" aria-pressed="@(viewMode == "Poste")" @onclick='() => SetMode("Poste")'>Par poste</button>
+                <button type="button" class="@Seg(viewMode == "Voiture")" aria-pressed="@(viewMode == "Voiture")" @onclick='() => SetMode("Voiture")'>Par voiture</button>
             </div>
-            <div class="row mt-3">
-                <div class="col-md-6">
-                    <div class="form-check mb-2">
-                        <input type="checkbox" class="form-check-input" @bind="groupByMonth" id="groupByMonth" />
-                        <label class="form-check-label" for="groupByMonth">
-                            Grouper par mois
-                        </label>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input type="checkbox" class="form-check-input" @bind="showSoldeGlobal" id="showSoldeGlobal" />
-                        <label class="form-check-label" for="showSoldeGlobal">
-                            Afficher le solde global
-                        </label>
-                    </div>
-                    @if (showSoldeGlobal)
+        </div>
+
+        <div class="gr-field">
+            <label for="graphiques-champ-2" class="gr-field-label">@(viewMode == "Poste" ? "Poste" : "Voiture")</label>
+            <select id="graphiques-champ-2" class="form-select" value="@SelectedCategoryId" @onchange="OnCategoryChanged">
+                <option value="">@(viewMode == "Poste" ? "Tous les postes" : "Toutes les voitures")</option>
+                @if (viewMode == "Poste")
+                {
+                    foreach (var poste in postes)
                     {
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" @bind="soldeCumulatif" id="soldeCumulatif" />
-                            <label class="form-check-label" for="soldeCumulatif">
-                                Solde cumulatif (au lieu de par période)
-                            </label>
-                        </div>
+                        <option value="@poste.Id">@poste.Nom</option>
                     }
-                </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-primary btn-lg" @onclick="GenerateChart" disabled="@isGenerating">
-                        @if (isGenerating)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <text>Génération en cours...</text>
-                        }
-                        else
-                        {
-                            <i class="bi bi-graph-up me-2" aria-hidden="true"></i>
-                            <text>Générer le graphique</text>
-                        }
-                    </button>
-                </div>
+                }
+                else
+                {
+                    foreach (var voiture in voitures)
+                    {
+                        <option value="@voiture.Id">@voiture.Nom</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="gr-field">
+            <span class="gr-field-label" id="gr-period-label">Période</span>
+            <div class="gr-segmented" role="group" aria-labelledby="gr-period-label">
+                <button type="button" class="@Seg(activePreset == "tout")" aria-pressed="@(activePreset == "tout")" @onclick='() => ApplyPreset("tout")'>Tout</button>
+                <button type="button" class="@Seg(activePreset == "annee")" aria-pressed="@(activePreset == "annee")" @onclick='() => ApplyPreset("annee")'>Cette année</button>
+                <button type="button" class="@Seg(activePreset == "12m")" aria-pressed="@(activePreset == "12m")" @onclick='() => ApplyPreset("12m")'>12 mois</button>
+            </div>
+        </div>
+
+        <div class="gr-field gr-field--dates">
+            <label for="graphiques-champ-3" class="gr-field-label">Du</label>
+            <InputDate id="graphiques-champ-3" class="form-control" @bind-Value="dateDebut" @bind-Value:after="OnDatesChanged" />
+        </div>
+        <div class="gr-field gr-field--dates">
+            <label for="graphiques-champ-4" class="gr-field-label">Au</label>
+            <InputDate id="graphiques-champ-4" class="form-control" @bind-Value="dateFin" @bind-Value:after="OnDatesChanged" />
+        </div>
+        <div class="gr-break" aria-hidden="true"></div>
+
+        <div class="gr-field">
+            <span class="gr-field-label" id="gr-gran-label">Découpage</span>
+            <div class="gr-segmented" role="group" aria-labelledby="gr-gran-label">
+                <button type="button" class="@Seg(groupByMonth)" aria-pressed="@groupByMonth" @onclick="() => SetGranularity(true)">Par mois</button>
+                <button type="button" class="@Seg(!groupByMonth)" aria-pressed="@(!groupByMonth)" @onclick="() => SetGranularity(false)">Par jour</button>
+            </div>
+        </div>
+
+        <div class="gr-field">
+            <span class="gr-field-label" id="gr-curves-label">Courbes</span>
+            <div class="gr-segmented" role="group" aria-labelledby="gr-curves-label">
+                <button type="button" class="@Seg(CurveMode == "categorie")" aria-pressed="@(CurveMode == "categorie")" @onclick='() => SetCurves("categorie")'>Par @(viewMode == "Poste" ? "poste" : "voiture")</button>
+                <button type="button" class="@Seg(CurveMode == "global")" aria-pressed="@(CurveMode == "global")" @onclick='() => SetCurves("global")'>Solde global</button>
+                <button type="button" class="@Seg(CurveMode == "cumul")" aria-pressed="@(CurveMode == "cumul")" @onclick='() => SetCurves("cumul")'>Solde cumulé</button>
             </div>
         </div>
     </div>
 
-    <!-- Graphique -->
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">SOLDE NET (GAINS - DÉPENSES)</h5>
-            <div class="text-end">
-                <span class="badge bg-info">@(groupByMonth ? "PAR MOIS" : "PAR JOUR")</span>
+    <div class="gr-layout">
+        <!-- Graphique -->
+        <section class="gr-card" aria-labelledby="gr-chart-title">
+            <div class="gr-card-head">
+                <h3 id="gr-chart-title" class="gr-card-title">@ChartTitle</h3>
+                <span class="gr-badge">@(groupByMonth ? "Par mois" : "Par jour")</span>
             </div>
-        </div>
-        <div class="card-body">
-            <div class="chart-container chart-container-tall">
-                <canvas id="depensesChart"></canvas>
-            </div>
-            @if (isGenerating && !chartData.Any())
-            {
-                <div class="text-center mt-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Chargement...</span>
+            <div class="gr-chart">
+                <canvas id="depensesChart" aria-label="@ChartTitle" role="img"></canvas>
+                @if (isGenerating && !chartData.Any())
+                {
+                    <div class="gr-overlay" role="status">
+                        <div class="spinner-border text-primary" aria-hidden="true"></div>
+                        <p>Chargement des données…</p>
                     </div>
-                    <p class="text-muted mt-2">Chargement des données...</p>
-                </div>
-            }
-            else if (!chartData.Any() && !isGenerating)
+                }
+                else if (!isGenerating && hasLoaded && !chartData.Any())
+                {
+                    <div class="gr-overlay">
+                        <i class="bi bi-graph-up" aria-hidden="true"></i>
+                        <p class="gr-overlay-title">Aucune donnée sur cette sélection</p>
+                        <p>Modifiez la période ou le @(viewMode == "Poste" ? "poste" : "véhicule") sélectionné.</p>
+                    </div>
+                }
+            </div>
+            @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <p class="text-muted mt-3">Cliquez sur "Générer le graphique" pour afficher les données.</p>
+                <div class="alert alert-danger mt-3 mb-0" role="alert">@errorMessage</div>
             }
-            @if (!isChartInitialized && chartData.Any())
+        </section>
+
+        <!-- Répartition -->
+        <aside class="gr-card" aria-labelledby="gr-split-title">
+            <div class="gr-card-head">
+                <h3 id="gr-split-title" class="gr-card-title">Dépenses par @(viewMode == "Poste" ? "poste" : "voiture")</h3>
+            </div>
+            @if (Repartition.Any())
             {
-                <p class="text-info mt-2">
-                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                    Initialisation du graphique...
-                </p>
+                <ul class="gr-split">
+                    @foreach (var ligne in Repartition)
+                    {
+                        <li>
+                            <div class="gr-split-row">
+                                <span class="gr-split-name" title="@ligne.Nom">@ligne.Nom</span>
+                                <span class="gr-split-amount">@FormatMontant(ligne.Montant)</span>
+                            </div>
+                            <div class="gr-split-track" role="img" aria-label="@ligne.Part.ToString("0") % des dépenses">
+                                <span class="gr-split-bar" style="width:@BarWidth(ligne.Part)%"></span>
+                            </div>
+                            <small class="gr-split-share">@ligne.Part.ToString("0.#", Fr) %</small>
+                        </li>
+                    }
+                </ul>
             }
-            @if (!string.IsNullOrEmpty(statusMessage))
+            else
             {
-                <div class="alert alert-info mt-3 mb-0" role="alert">
-                    @statusMessage
-                </div>
+                <p class="gr-split-empty">Aucune dépense sur cette sélection.</p>
             }
-        </div>
+        </aside>
     </div>
 </div>
 
@@ -160,7 +193,10 @@
     private bool isChartInitialized = false;
     private bool needsChartUpdate = false;
     private bool isGenerating = false;
-    private string? statusMessage = null;
+    private bool hasLoaded = false;
+    private bool refreshQueued = false;
+    private string activePreset = "tout";
+    private string? errorMessage = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,35 +239,188 @@
             .ToListAsync();
     }
 
+    private static readonly System.Globalization.CultureInfo Fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+
+    private sealed record LigneRepartition(string Nom, decimal Montant, decimal Part);
+
+    private string SelectedCategoryId => (viewMode == "Poste" ? selectedPosteId : selectedVoitureId)?.ToString() ?? string.Empty;
+
+    private string CurveMode => !showSoldeGlobal ? "categorie" : soldeCumulatif ? "cumul" : "global";
+
+    private decimal TotalDepenses => -chartData.Where(d => d.Montant < 0).Sum(d => d.Montant);
+
+    private decimal TotalGains => chartData.Where(d => d.Montant > 0).Sum(d => d.Montant);
+
+    private decimal Solde => TotalGains - TotalDepenses;
+
+    private string ChartTitle => CurveMode switch
+    {
+        "global" => "Solde net global (gains − dépenses)",
+        "cumul" => "Solde net cumulé (gains − dépenses)",
+        _ => $"Solde net par {(viewMode == "Poste" ? "poste" : "voiture")} (gains − dépenses)"
+    };
+
+    private string PeriodDescription
+    {
+        get
+        {
+            var debut = dateDebut == default ? "le début" : dateDebut.ToString("dd/MM/yyyy");
+            var fin = dateFin == default ? "aujourd'hui" : dateFin.ToString("dd/MM/yyyy");
+            return $"{(viewMode == "Poste" ? "Par poste" : "Par voiture")} · du {debut} au {fin}";
+        }
+    }
+
+    private IReadOnlyList<LigneRepartition> Repartition
+    {
+        get
+        {
+            var total = TotalDepenses;
+            return chartData
+                .Where(d => d.Montant < 0)
+                .GroupBy(d => d.Categorie)
+                .Select(g => new { Nom = g.Key, Montant = -g.Sum(d => d.Montant) })
+                .OrderByDescending(x => x.Montant)
+                .Select(x => new LigneRepartition(x.Nom, x.Montant, total > 0 ? x.Montant / total * 100m : 0m))
+                .ToList();
+        }
+    }
+
+    private static string Seg(bool actif) => actif ? "gr-segment is-active" : "gr-segment";
+
+    private static string FormatMontant(decimal montant) => $"{montant.ToString("N2", Fr)} €";
+
+    private static string SignedMontant(decimal montant, char signe) => montant == 0 ? FormatMontant(0) : signe + FormatMontant(montant);
+
+    private static string BarWidth(decimal part)
+        => Math.Round(Math.Min(100m, part), 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private async Task SetMode(string mode)
+    {
+        if (viewMode == mode)
+        {
+            return;
+        }
+
+        viewMode = mode;
+        selectedPosteId = null;
+        selectedVoitureId = null;
+        await RefreshAsync();
+    }
+
+    private async Task OnCategoryChanged(ChangeEventArgs e)
+    {
+        int? id = int.TryParse(e.Value?.ToString(), out var valeur) ? valeur : null;
+        if (viewMode == "Poste")
+        {
+            selectedPosteId = id;
+        }
+        else
+        {
+            selectedVoitureId = id;
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task ApplyPreset(string preset)
+    {
+        activePreset = preset;
+        var aujourdhui = DateTime.Today;
+        switch (preset)
+        {
+            case "annee":
+                dateDebut = new DateTime(aujourdhui.Year, 1, 1);
+                dateFin = aujourdhui;
+                break;
+            case "12m":
+                dateDebut = aujourdhui.AddMonths(-12);
+                dateFin = aujourdhui;
+                break;
+            default:
+                dateDebut = new DateTime(2023, 8, 1);
+                dateFin = aujourdhui;
+                break;
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task OnDatesChanged()
+    {
+        activePreset = "perso";
+        await RefreshAsync();
+    }
+
+    private async Task SetGranularity(bool parMois)
+    {
+        if (groupByMonth == parMois)
+        {
+            return;
+        }
+
+        groupByMonth = parMois;
+        await RefreshAsync();
+    }
+
+    private async Task SetCurves(string mode)
+    {
+        showSoldeGlobal = mode != "categorie";
+        soldeCumulatif = mode == "cumul";
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (!isChartInitialized)
+        {
+            return;
+        }
+
+        if (isGenerating)
+        {
+            refreshQueued = true;
+            return;
+        }
+
+        await GenerateChart();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Initialiser le graphique au premier rendu mais ne pas charger de données
+            // Le canvas est toujours présent : on initialise le graphique puis on charge les données
             await Task.Delay(200);
             await InitializeChart();
             isChartInitialized = true;
+            await GenerateChart();
+            return;
         }
-        
-        // Mettre à jour le graphique si nécessaire et si initialisé
+
         if (isChartInitialized && needsChartUpdate)
         {
-            await Task.Delay(100); // Petit délai pour s'assurer que le canvas est prêt
-            if (chartData.Any())
-            {
-                await UpdateChart();
-                statusMessage = $"Graphique généré avec succès ! ({chartData.Count} points de données)";
-            }
             needsChartUpdate = false;
+            await Task.Delay(50); // laisse le temps au canvas d'être prêt
+            await UpdateChart();
             isGenerating = false;
-            StateHasChanged();
+            hasLoaded = true;
+
+            if (refreshQueued)
+            {
+                refreshQueued = false;
+                await GenerateChart();
+            }
+            else
+            {
+                StateHasChanged();
+            }
         }
     }
 
     private async Task GenerateChart()
     {
         isGenerating = true;
-        statusMessage = "Chargement des données...";
+        errorMessage = null;
         StateHasChanged();
 
         try
@@ -240,8 +429,9 @@
         }
         catch (Exception ex)
         {
-            statusMessage = $"Erreur lors du chargement: {ex.Message}";
+            errorMessage = $"Erreur lors du chargement : {ex.Message}";
             isGenerating = false;
+            hasLoaded = true;
             StateHasChanged();
         }
     }
@@ -252,6 +442,8 @@
         if (!userId.HasValue)
         {
             chartData = new List<ChartDataPoint>();
+            needsChartUpdate = true;
+            StateHasChanged();
             return;
         }
 
@@ -294,7 +486,7 @@
 
         if (dateFin != default)
         {
-            query = query.Where(t => t.Date <= dateFin);
+            query = query.Where(t => t.Date < dateFin.Date.AddDays(1));
         }
 
         var transactions = await query.OrderBy(t => t.Date).ToListAsync();
@@ -326,7 +518,7 @@
 
         if (dateFin != default)
         {
-            gainsQuery = gainsQuery.Where(t => t.Date <= dateFin);
+            gainsQuery = gainsQuery.Where(t => t.Date < dateFin.Date.AddDays(1));
         }
 
         var gains = await gainsQuery.OrderBy(t => t.Date).ToListAsync();
@@ -455,11 +647,8 @@
 
         // Marquer que le graphique doit être mis à jour
         needsChartUpdate = true;
-        statusMessage = "Données chargées, préparation du graphique...";
         StateHasChanged();
     }
-
-    // Plus besoin de OnFilterChanged - tout est géré par le bouton
 
     private async Task InitializeChart()
     {
@@ -497,7 +686,15 @@
     {
         if (!chartData.Any())
         {
-            Console.WriteLine("Aucune donnée à afficher");
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("updateDepensesChart", Array.Empty<string>(), Array.Empty<object>());
+            }
+            catch (JSException ex)
+            {
+                Console.WriteLine($"Erreur JS lors de la remise à zéro: {ex.Message}");
+            }
+
             return;
         }
 

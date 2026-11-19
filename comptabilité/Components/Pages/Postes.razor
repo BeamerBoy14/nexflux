@@ -5,6 +5,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
+@using System.Globalization
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
 @inject AuthService AuthService
@@ -12,75 +13,159 @@
 
 <PageTitle>Postes de dépense</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestion des Postes de Dépense</h2>
-        <button class="btn btn-primary" @onclick="ShowAddModal">
+<div class="container mt-4 ps-page">
+    <div class="ps-header">
+        <div>
+            <h2 class="ps-title">Postes de dépense</h2>
+            <p class="ps-subtitle">@(isLoading ? "Chargement…" : $"{postes.Count} poste{(postes.Count > 1 ? "s" : "")} · {FormatMontant(TotalDepenses)} dépensés")</p>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="ShowAddModal">
             <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un poste
         </button>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            @if (isLoading)
+    @if (isLoading)
+    {
+        <div class="ps-list ps-list--loading" aria-hidden="true">
+            @for (var i = 0; i < 5; i++)
             {
-                <div class="skeleton-list">
-                    @for (var i = 0; i < 2; i++)
-                    {
-                        <div class="skeleton-card">
-                            <div class="skeleton-line w-50"></div>
-                            <div class="skeleton-line w-75"></div>
-                            <div class="skeleton-chip"></div>
-                        </div>
-                    }
-                </div>
-            }
-            else if (postes.Any())
-            {
-                <div class="inline-card-list">
-                    @foreach (var poste in postes)
-                    {
-                        <div class="inline-card inline-card--poste">
-                            <div class="inline-card-overview">
-                                <h5 class="inline-card-title">@poste.Nom</h5>
-                                <span class="inline-card-date">Poste de dépense</span>
-                                @if (!string.IsNullOrWhiteSpace(poste.Description))
-                                {
-                                    <p class="inline-card-description">@poste.Description</p>
-                                }
-                            </div>
-                            <div class="inline-card-details">
-                                <div class="inline-card-detail">
-                                    <span class="inline-card-detail-label">Association voiture</span>
-                                    <span class="inline-card-detail-value">
-                                        <span class="badge @(poste.PeutAvoirVoiture ? "bg-success" : "bg-secondary")">
-                                            @(poste.PeutAvoirVoiture ? "Peut être associée" : "Non associable")
-                                        </span>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="inline-card-actions">
-                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditPoste(poste)" title="Modifier" aria-label="Modifier @poste.Nom">
-                                    <i class="bi bi-pencil" aria-hidden="true"></i>
-                                </button>
-                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeletePoste(poste)" title="Supprimer" aria-label="Supprimer @poste.Nom">
-                                    <i class="bi bi-trash" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="inline-card-empty text-center text-muted">
-                    <i class="bi bi-stack display-6 mb-3" aria-hidden="true"></i>
-                    <p class="fw-semibold mb-1">Aucun poste enregistré</p>
-                    <p class="mb-0">Ajoutez un poste pour organiser vos dépenses.</p>
+                <div class="ps-skeleton-row">
+                    <div class="skeleton-line w-40"></div>
+                    <div class="skeleton-line w-60"></div>
                 </div>
             }
         </div>
-    </div>
+    }
+    else if (!postes.Any())
+    {
+        <div class="ps-empty">
+            <i class="bi bi-stack" aria-hidden="true"></i>
+            <p class="ps-empty-title">Aucun poste enregistré</p>
+            <p>Ajoutez un poste pour organiser vos dépenses.</p>
+        </div>
+    }
+    else
+    {
+        var principal = PostePrincipal;
+        <div class="ps-kpis">
+            <div class="ps-kpi">
+                <span class="ps-kpi-label">Postes</span>
+                <span class="ps-kpi-value">@postes.Count</span>
+                <span class="ps-kpi-sub">dont @postes.Count(p => p.PeutAvoirVoiture) associable@(postes.Count(p => p.PeutAvoirVoiture) > 1 ? "s" : "") à une voiture</span>
+            </div>
+            <div class="ps-kpi ps-kpi--expense">
+                <span class="ps-kpi-label">Total dépensé</span>
+                <span class="ps-kpi-value">@FormatMontant(TotalDepenses)</span>
+                <span class="ps-kpi-sub">@TotalOperations opération@(TotalOperations > 1 ? "s" : "") classée@(TotalOperations > 1 ? "s" : "") dans un poste</span>
+            </div>
+            <div class="ps-kpi">
+                <span class="ps-kpi-label">Poste principal</span>
+                <span class="ps-kpi-value ps-kpi-value--text">@(principal?.Nom ?? "-")</span>
+                <span class="ps-kpi-sub">@(principal != null ? $"{FormatMontant(StatsDe(principal).Depenses)} · {Part(principal):0} % des dépenses" : "Aucune dépense classée")</span>
+            </div>
+        </div>
+
+        <div class="ps-toolbar">
+            <div class="ps-field ps-field--grow">
+                <label for="postes-recherche" class="ps-field-label">Rechercher</label>
+                <div class="ps-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input id="postes-recherche" type="search" class="form-control" placeholder="Nom ou description…"
+                           value="@searchText" @oninput="OnSearchInput" />
+                </div>
+            </div>
+            <div class="ps-field">
+                <label for="postes-tri" class="ps-field-label">Trier par</label>
+                <select id="postes-tri" class="form-select" value="@sortMode" @onchange="OnSortChanged">
+                    <option value="nom">Nom (A → Z)</option>
+                    <option value="depense">Dépenses (plus élevées d'abord)</option>
+                    <option value="operations">Nombre d'opérations</option>
+                </select>
+            </div>
+        </div>
+
+        @if (!FilteredPostes.Any())
+        {
+            <div class="ps-empty">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <p class="ps-empty-title">Aucun résultat</p>
+                <p>Aucun poste ne correspond à « @searchText ».</p>
+            </div>
+        }
+        else
+        {
+            <div class="ps-list">
+                <div class="ps-table-wrap">
+                    <table class="ps-table">
+                        <caption class="visually-hidden">Liste des postes de dépense</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Poste</th>
+                                <th scope="col" class="ps-col-wide">Voiture</th>
+                                <th scope="col" class="ps-col-wide">Opérations</th>
+                                <th scope="col" class="ps-col-amount">Dépensé</th>
+                                <th scope="col" class="ps-col-actions"><span class="visually-hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var poste in FilteredPostes)
+                            {
+                                var stats = StatsDe(poste);
+                                <tr>
+                                    <td class="ps-col-poste">
+                                        <span class="ps-name">@poste.Nom</span>
+                                        @if (!string.IsNullOrWhiteSpace(poste.Description))
+                                        {
+                                            <span class="ps-desc" title="@poste.Description">@poste.Description</span>
+                                        }
+                                        <span class="ps-inline-meta">
+                                            @if (poste.PeutAvoirVoiture)
+                                            {
+                                                <span class="ps-pill ps-pill--car"><i class="bi bi-car-front-fill" aria-hidden="true"></i>Associable</span>
+                                            }
+                                            <span class="ps-count">@stats.Count opération@(stats.Count > 1 ? "s" : "")</span>
+                                        </span>
+                                    </td>
+                                    <td class="ps-col-wide">
+                                        @if (poste.PeutAvoirVoiture)
+                                        {
+                                            <span class="ps-pill ps-pill--car"><i class="bi bi-car-front-fill" aria-hidden="true"></i>Associable</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ps-none">Non associable</span>
+                                        }
+                                    </td>
+                                    <td class="ps-col-wide">
+                                        <span class="ps-count">@stats.Count</span>
+                                        @if (stats.Derniere.HasValue)
+                                        {
+                                            <small class="ps-last">dernière le @stats.Derniere.Value.ToString("dd/MM/yyyy")</small>
+                                        }
+                                    </td>
+                                    <td class="ps-col-amount">
+                                        <span class="ps-amount">@FormatMontant(stats.Depenses)</span>
+                                        <span class="ps-share" role="img" aria-label="@Part(poste).ToString("0") % des dépenses">
+                                            <span class="ps-share-bar" style="width:@PartBarre(poste)%"></span>
+                                        </span>
+                                        <small class="ps-last">@Part(poste).ToString("0") %@(stats.Gains > 0 ? $" · +{FormatMontant(stats.Gains)} de gains" : "")</small>
+                                    </td>
+                                    <td class="ps-col-actions">
+                                        <button type="button" class="btn btn-icon btn-outline-primary" @onclick="() => EditPoste(poste)" title="Modifier" aria-label="Modifier @poste.Nom">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-icon btn-outline-danger" @onclick="() => DeletePoste(poste)" title="Supprimer" aria-label="Supprimer @poste.Nom">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
 </div>
 
 <!-- Modal -->
@@ -130,6 +215,60 @@
     private Poste currentPoste = new();
     private bool isLoading = true;
 
+    private sealed record PosteStats(int Count, decimal Depenses, decimal Gains, DateTime? Derniere);
+
+    private static readonly PosteStats AucuneStat = new(0, 0m, 0m, null);
+    private static readonly CultureInfo Fr = CultureInfo.GetCultureInfo("fr-FR");
+
+    private Dictionary<int, PosteStats> stats = new();
+    private string searchText = string.Empty;
+    private string sortMode = "nom";
+
+    private PosteStats StatsDe(Poste poste) => stats.TryGetValue(poste.Id, out var s) ? s : AucuneStat;
+
+    private decimal TotalDepenses => stats.Values.Sum(s => s.Depenses);
+
+    private int TotalOperations => stats.Values.Sum(s => s.Count);
+
+    private Poste? PostePrincipal => postes
+        .Where(p => StatsDe(p).Depenses > 0)
+        .OrderByDescending(p => StatsDe(p).Depenses)
+        .FirstOrDefault();
+
+    private decimal Part(Poste poste) => TotalDepenses > 0 ? StatsDe(poste).Depenses / TotalDepenses * 100m : 0m;
+
+    private string PartBarre(Poste poste) => Math.Round(Math.Min(100m, Part(poste)), 1).ToString(CultureInfo.InvariantCulture);
+
+    private static string FormatMontant(decimal montant) => $"{montant.ToString("N2", Fr)} €";
+
+    private IEnumerable<Poste> FilteredPostes
+    {
+        get
+        {
+            var texte = searchText.Trim();
+            var resultat = postes.AsEnumerable();
+
+            if (texte.Length > 0)
+            {
+                resultat = resultat.Where(p => Contient(p.Nom, texte) || Contient(p.Description, texte));
+            }
+
+            return sortMode switch
+            {
+                "depense" => resultat.OrderByDescending(p => StatsDe(p).Depenses).ThenBy(p => p.Nom),
+                "operations" => resultat.OrderByDescending(p => StatsDe(p).Count).ThenBy(p => p.Nom),
+                _ => resultat.OrderBy(p => p.Nom, StringComparer.CurrentCultureIgnoreCase)
+            };
+        }
+    }
+
+    private static bool Contient(string? valeur, string texte)
+        => valeur != null && Fr.CompareInfo.IndexOf(valeur, texte, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+
+    private void OnSearchInput(ChangeEventArgs e) => searchText = e.Value?.ToString() ?? string.Empty;
+
+    private void OnSortChanged(ChangeEventArgs e) => sortMode = e.Value?.ToString() ?? "nom";
+
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
@@ -143,6 +282,7 @@
         if (!userId.HasValue)
         {
             postes = new List<Poste>();
+            stats = new Dictionary<int, PosteStats>();
             return;
         }
 
@@ -152,6 +292,20 @@
             .Where(p => p.UtilisateurId == userId.Value)
             .OrderBy(p => p.Nom)
             .ToListAsync();
+
+        stats = (await db.Transactions
+                .Where(t => t.UtilisateurId == userId.Value && t.PosteId != null)
+                .GroupBy(t => t.PosteId!.Value)
+                .Select(g => new
+                {
+                    PosteId = g.Key,
+                    Count = g.Count(),
+                    Depenses = g.Sum(t => t.Type == "Dépense" ? t.Montant : 0m),
+                    Gains = g.Sum(t => t.Type == "Gain" ? t.Montant : 0m),
+                    Derniere = g.Max(t => (DateTime?)t.Date)
+                })
+                .ToListAsync())
+            .ToDictionary(x => x.PosteId, x => new PosteStats(x.Count, x.Depenses, x.Gains, x.Derniere));
     }
 
     private void ShowAddModal()
@@ -213,7 +367,12 @@
 
     private async Task DeletePoste(Poste poste)
     {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer le poste '{poste.Nom}' ?"))
+        var operations = StatsDe(poste).Count;
+        var message = operations > 0
+            ? $"Êtes-vous sûr de vouloir supprimer le poste '{poste.Nom}' ?\n\nLes {operations} opération(s) associée(s) seront conservées mais ne seront plus classées dans aucun poste."
+            : $"Êtes-vous sûr de vouloir supprimer le poste '{poste.Nom}' ?";
+
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", message))
             return;
 
         var userId = AuthService.GetUtilisateurId();

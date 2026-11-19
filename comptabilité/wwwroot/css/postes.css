@@ -1,0 +1,436 @@
+/* ============================================
+   PAGE POSTES : synthèse, recherche et tableau compact
+   ============================================ */
+
+.ps-page {
+    --ps-line: rgba(255, 255, 255, 0.07);
+    --ps-panel: rgba(2, 8, 30, 0.72);
+    --ps-expense: #f87171;
+    padding-bottom: 3rem;
+}
+
+.ps-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.ps-title {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.ps-subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Synthèse */
+.ps-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.ps-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--ps-panel);
+}
+
+.ps-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--ps-accent, var(--blue-light));
+}
+
+.ps-kpi--expense {
+    --ps-accent: var(--ps-expense);
+}
+
+.ps-kpi-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.ps-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--ps-accent, var(--text-primary));
+}
+
+.ps-kpi-value--text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.25rem;
+    line-height: 1.8rem;
+}
+
+.ps-kpi-sub {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+/* Filtres */
+.ps-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--ps-panel);
+}
+
+.ps-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 13rem;
+}
+
+.ps-field--grow {
+    flex: 1 1 18rem;
+}
+
+.ps-field-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.ps-search {
+    position: relative;
+}
+
+.ps-search > i {
+    position: absolute;
+    top: 50%;
+    left: 0.85rem;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.ps-search .form-control {
+    padding-left: 2.4rem;
+}
+
+/* Liste */
+.ps-list {
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--ps-panel);
+    overflow: hidden;
+}
+
+.ps-table-wrap {
+    overflow-x: auto;
+}
+
+.ps-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ps-table thead th {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--ps-line);
+    background: rgba(0, 0, 20, 0.5);
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.ps-table tbody tr {
+    border-bottom: 1px solid var(--ps-line);
+    transition: background 0.15s ease;
+}
+
+.ps-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.ps-table tbody tr:hover {
+    background: rgba(0, 204, 255, 0.06);
+}
+
+.ps-table td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+}
+
+.ps-col-poste {
+    min-width: 14rem;
+}
+
+.ps-name {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.ps-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.1rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.ps-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ps-pill--car {
+    color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.14);
+    border-color: rgba(139, 92, 246, 0.28);
+}
+
+.ps-none {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.ps-count {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.ps-last {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.ps-col-amount {
+    min-width: 11rem;
+    text-align: right;
+}
+
+.ps-amount {
+    display: block;
+    color: var(--ps-expense);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.ps-share {
+    display: block;
+    height: 5px;
+    margin: 0.35rem 0 0.2rem auto;
+    max-width: 9rem;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ps-share-bar {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 3px;
+    background: var(--ps-expense);
+    transition: width 0.3s ease;
+}
+
+.ps-inline-meta {
+    display: none;
+}
+
+.ps-col-actions {
+    width: 6.5rem;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.ps-table .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.25rem;
+    font-size: 0.8rem;
+}
+
+/* États vides et chargement */
+.ps-empty {
+    padding: 3rem 1rem;
+    border: 1px dashed var(--card-border);
+    border-radius: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.ps-empty i {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    color: var(--blue-light);
+}
+
+.ps-empty p {
+    margin: 0;
+}
+
+.ps-empty-title {
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.ps-skeleton-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--ps-line);
+}
+
+.ps-skeleton-row:last-child {
+    border-bottom: 0;
+}
+
+@media (max-width: 1199.98px) {
+    .ps-table .ps-col-wide {
+        display: none;
+    }
+
+    .ps-inline-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+        margin-top: 0.4rem;
+    }
+
+    .ps-inline-meta .ps-count {
+        color: var(--text-secondary);
+        font-size: 0.78rem;
+        font-weight: 400;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .ps-kpis {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .ps-kpi {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+    }
+
+    .ps-kpi-value {
+        font-size: 1.15rem;
+    }
+
+    .ps-kpi-sub {
+        flex-basis: 100%;
+    }
+
+    /* Une ligne = une carte : poste et actions en haut, dépenses dessous */
+    .ps-table thead {
+        display: none;
+    }
+
+    .ps-table,
+    .ps-table tbody {
+        display: block;
+    }
+
+    .ps-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "poste actions"
+            "montant montant";
+        gap: 0.5rem 0.75rem;
+        padding: 0.85rem 0.9rem;
+    }
+
+    .ps-table td {
+        display: block;
+        padding: 0;
+    }
+
+    .ps-table .ps-col-poste {
+        grid-area: poste;
+        min-width: 0;
+    }
+
+    .ps-table .ps-col-amount {
+        grid-area: montant;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .ps-table .ps-col-amount .ps-share {
+        margin-left: 0;
+        max-width: none;
+    }
+
+    .ps-table .ps-col-actions {
+        grid-area: actions;
+        width: auto;
+        align-self: start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .ps-header .btn {
+        width: 100%;
+    }
+
+    .ps-field {
+        flex: 1 1 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ps-share-bar,
+    .ps-table tbody tr {
+        transition: none;
+    }
+}

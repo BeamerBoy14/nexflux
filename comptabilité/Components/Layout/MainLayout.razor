@@ -13,7 +13,7 @@
 <div class="page">
     <header class="app-header">
         <div class="app-header-brand">
-            <a class="navbar-brand" href=""><img class="brand-mark" src="favicon.svg?v=2" alt="" />NEXFLUX</a>
+            <a class="navbar-brand" href=""><img class="brand-mark" src="favicon.svg?v=2" alt="" /><span class="brand-text">NEXFLUX</span></a>
         </div>
 
         <div class="app-header-main">
@@ -48,6 +48,10 @@
 
     <aside class="sidebar">
         <NavMenu />
+
+        <button type="button" class="sidebar-collapse" onclick="window.nxToggleSidebar && window.nxToggleSidebar()" aria-pressed="false" aria-label="Réduire le menu" title="Réduire le menu">
+            <i class="bi bi-chevron-bar-left" aria-hidden="true"></i><span class="nav-text">Réduire le menu</span>
+        </button>
 
         @if (AuthService.EstConnecte())
         {

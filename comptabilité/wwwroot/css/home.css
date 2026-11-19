@@ -315,3 +315,501 @@
         font-size: 2rem;
     }
 }
+
+/* ============================================
+   ACCUEIL : tableau de bord
+   ============================================ */
+
+.hm-page {
+    --hm-line: rgba(255, 255, 255, 0.07);
+    --hm-panel: rgba(2, 8, 30, 0.72);
+    --hm-expense: #f87171;
+    --hm-income: #34d399;
+    padding-bottom: 3rem;
+}
+
+.hm-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.hm-eyebrow {
+    margin: 0 0 0.2rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.hm-title {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.hm-subtitle {
+    margin: 0.2rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+
+.hm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+/* Synthèse */
+.hm-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.hm-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--hm-panel);
+}
+
+.hm-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--hm-accent, var(--blue-light));
+}
+
+.hm-kpi--expense {
+    --hm-accent: var(--hm-expense);
+}
+
+.hm-kpi--income {
+    --hm-accent: var(--hm-income);
+}
+
+.hm-kpi-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.hm-kpi-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--hm-accent, var(--text-primary));
+}
+
+.hm-kpi-value--plain {
+    color: var(--text-primary);
+}
+
+.hm-kpi-sub {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.hm-kpi-sub.hm-over {
+    color: var(--hm-expense);
+}
+
+.hm-kpi-sub.hm-under {
+    color: var(--hm-income);
+}
+
+/* Disposition */
+.hm-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.hm-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.hm-card {
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--hm-panel);
+}
+
+.hm-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+}
+
+.hm-card-title {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.hm-link {
+    color: var(--blue-light);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.hm-link:hover {
+    text-decoration: underline;
+}
+
+.hm-legend {
+    display: flex;
+    gap: 0.9rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.hm-dot {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-right: 0.35rem;
+    border-radius: 50%;
+}
+
+.hm-dot--expense {
+    background: var(--hm-expense);
+}
+
+.hm-dot--income {
+    background: var(--hm-income);
+}
+
+/* Courbe des 12 mois */
+.hm-months {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 0.4rem;
+    height: 11rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hm-month {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    min-width: 0;
+    height: 100%;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+}
+
+.hm-month:hover {
+    background: rgba(0, 204, 255, 0.07);
+}
+
+.hm-bars {
+    display: flex;
+    flex: 1;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    min-height: 0;
+}
+
+.hm-bar {
+    display: block;
+    width: 34%;
+    max-width: 14px;
+    min-height: 2px;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.3s ease;
+}
+
+.hm-bar--expense {
+    background: var(--hm-expense);
+}
+
+.hm-bar--income {
+    background: var(--hm-income);
+}
+
+.hm-month-label {
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    text-transform: capitalize;
+}
+
+.hm-month.is-current .hm-month-label {
+    color: var(--blue-light);
+    font-weight: 700;
+}
+
+.hm-month-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1rem;
+    margin-top: 0.9rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--hm-line);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.hm-month-summary strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.hm-down {
+    color: var(--hm-expense);
+}
+
+.hm-up {
+    color: var(--hm-income);
+}
+
+/* Listes */
+.hm-list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hm-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--hm-line);
+}
+
+.hm-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.hm-row:first-child {
+    padding-top: 0;
+}
+
+.hm-row-date {
+    display: flex;
+    flex: 0 0 2.6rem;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.1;
+}
+
+.hm-row-date strong {
+    font-size: 1.05rem;
+}
+
+.hm-row-date small {
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+}
+
+.hm-row-main {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.hm-row-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.hm-row-link {
+    text-decoration: none;
+}
+
+.hm-row-link:hover {
+    color: var(--blue-light);
+    text-decoration: underline;
+}
+
+.hm-row-sub {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.hm-row-sub:empty {
+    display: none;
+}
+
+.hm-tag {
+    padding: 0 0.55rem;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    border-radius: 999px;
+    background: rgba(14, 165, 233, 0.12);
+    color: #7dd3fc;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.hm-tag--car {
+    border-color: rgba(139, 92, 246, 0.28);
+    background: rgba(139, 92, 246, 0.14);
+    color: #c4b5fd;
+}
+
+.hm-row-amount {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.hm-empty {
+    margin: 0;
+    padding: 1.5rem 0.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+/* Accès rapide */
+.hm-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.hm-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.hm-tile:hover {
+    border-color: rgba(0, 204, 255, 0.45);
+    background: rgba(0, 204, 255, 0.08);
+    transform: translateY(-2px);
+}
+
+.hm-tile:focus-visible {
+    outline: 2px solid var(--blue-light);
+    outline-offset: 2px;
+}
+
+.hm-tile i {
+    color: var(--blue-light);
+    font-size: 1.2rem;
+}
+
+.hm-tile span {
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.hm-tile small {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+@media (max-width: 1199.98px) {
+    .hm-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hm-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .hm-kpis {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .hm-kpi {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+    }
+
+    .hm-kpi-value {
+        font-size: 1.15rem;
+    }
+
+    .hm-kpi-sub {
+        flex-basis: 100%;
+    }
+
+    .hm-actions .btn {
+        flex: 1;
+    }
+
+    .hm-card {
+        padding: 0.9rem;
+    }
+
+    .hm-months {
+        gap: 0.2rem;
+    }
+
+    .hm-month-label {
+        font-size: 0.6rem;
+    }
+
+    .hm-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hm-bar,
+    .hm-tile,
+    .hm-month {
+        transition: none;
+    }
+}

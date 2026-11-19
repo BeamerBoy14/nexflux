@@ -327,3 +327,579 @@
         grid-column: span 1;
     }
 }
+
+/* ============================================
+   PAGE TRANSACTIONS : synthèse, filtres et mois dépliables
+   ============================================ */
+
+.tx-page {
+    --tx-expense: #f87171;
+    --tx-income: #34d399;
+    --tx-line: rgba(255, 255, 255, 0.07);
+    --tx-panel: rgba(2, 8, 30, 0.72);
+    padding-bottom: 3rem;
+}
+
+.tx-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.tx-title {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.tx-subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Synthèse */
+.tx-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.tx-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--tx-panel);
+}
+
+.tx-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--tx-accent);
+}
+
+.tx-kpi--expense {
+    --tx-accent: var(--tx-expense);
+}
+
+.tx-kpi--income {
+    --tx-accent: var(--tx-income);
+}
+
+.tx-kpi-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.tx-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--tx-accent);
+}
+
+/* Filtres */
+.tx-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--tx-panel);
+}
+
+.tx-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 11rem;
+}
+
+.tx-field--grow {
+    flex: 1 1 16rem;
+}
+
+.tx-field-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.tx-segmented {
+    display: inline-flex;
+    padding: 3px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: rgba(0, 0, 20, 0.6);
+}
+
+.tx-segment {
+    padding: 0.45rem 1rem;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tx-segment:hover {
+    color: var(--text-primary);
+}
+
+.tx-segment.is-active {
+    background: linear-gradient(135deg, rgba(0, 102, 255, 0.55), rgba(0, 204, 255, 0.4));
+    color: #ffffff;
+}
+
+.tx-search {
+    position: relative;
+}
+
+.tx-search > i {
+    position: absolute;
+    top: 50%;
+    left: 0.85rem;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.tx-search .form-control {
+    padding-left: 2.4rem;
+}
+
+.tx-search .form-control:disabled {
+    background: rgba(0, 0, 20, 0.6);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Liste des mois */
+.tx-months {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.tx-month {
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--tx-panel);
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tx-month:hover,
+.tx-month.is-open {
+    border-color: rgba(0, 204, 255, 0.35);
+}
+
+.tx-month.is-open {
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+}
+
+.tx-month-head {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(9rem, 1.1fr) minmax(5rem, 1fr) repeat(3, minmax(7rem, auto));
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.9rem 1.25rem;
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+}
+
+.tx-month-head:hover {
+    background: rgba(0, 204, 255, 0.05);
+}
+
+.tx-month-head:focus-visible {
+    outline: 2px solid var(--blue-light);
+    outline-offset: -2px;
+}
+
+.tx-chevron {
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.tx-month.is-open .tx-chevron {
+    transform: rotate(90deg);
+    color: var(--blue-light);
+}
+
+.tx-month-name {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.tx-month-name strong {
+    font-size: 1rem;
+    text-transform: capitalize;
+}
+
+.tx-month-name small {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.tx-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tx-bar {
+    display: block;
+    height: 5px;
+    min-width: 2px;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.tx-bar--expense {
+    background: var(--tx-expense);
+}
+
+.tx-bar--income {
+    background: var(--tx-income);
+}
+
+.tx-amount {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.tx-amount--expense {
+    color: var(--tx-expense);
+}
+
+.tx-amount--income {
+    color: var(--tx-income);
+}
+
+.tx-amount--solde {
+    font-weight: 700;
+}
+
+.tx-amount--solde.is-positive {
+    color: var(--tx-income);
+}
+
+.tx-amount--solde.is-negative {
+    color: var(--tx-expense);
+}
+
+/* Détail d'un mois */
+.tx-month-panel {
+    border-top: 1px solid var(--tx-line);
+    background: rgba(0, 0, 12, 0.45);
+    animation: tx-open 0.22s ease both;
+}
+
+@keyframes tx-open {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.tx-table-wrap {
+    max-height: min(65vh, 640px);
+    overflow: auto;
+}
+
+.tx-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tx-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 0.55rem 1rem;
+    background: #030a22;
+    border-bottom: 1px solid var(--tx-line);
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+.tx-table tbody tr {
+    border-bottom: 1px solid var(--tx-line);
+    transition: background 0.15s ease;
+}
+
+.tx-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.tx-table tbody tr:hover {
+    background: rgba(0, 204, 255, 0.05);
+}
+
+.tx-table td {
+    padding: 0.7rem 1rem;
+    vertical-align: top;
+}
+
+.tx-table .tx-col-date {
+    width: 4.5rem;
+    white-space: nowrap;
+}
+
+.tx-table .tx-col-amount {
+    width: 9rem;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tx-table .tx-col-actions {
+    width: 6.5rem;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.tx-table tr.is-expense .tx-col-date {
+    box-shadow: inset 3px 0 0 var(--tx-expense);
+}
+
+.tx-table tr.is-income .tx-col-date {
+    box-shadow: inset 3px 0 0 var(--tx-income);
+}
+
+.tx-day {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.1;
+    padding-left: 0.4rem;
+}
+
+.tx-weekday {
+    display: block;
+    padding-left: 0.4rem;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.tx-label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tx-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 0.1rem;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.tx-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.4rem;
+}
+
+.tx-tags:empty {
+    display: none;
+}
+
+.tx-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.12rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.tx-tag--poste {
+    color: #7dd3fc;
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.25);
+}
+
+.tx-tag--voiture {
+    color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.14);
+    border-color: rgba(139, 92, 246, 0.28);
+}
+
+.tx-tag--client {
+    color: #fcd34d;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.tx-tag--reservation {
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.25);
+}
+
+.tx-table .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.tx-empty {
+    margin: 0;
+    padding: 1.75rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.tx-empty--page {
+    padding: 3rem 1rem;
+    border: 1px dashed var(--card-border);
+    border-radius: 16px;
+}
+
+.tx-empty--page i {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    color: var(--blue-light);
+}
+
+.tx-empty--page p {
+    margin: 0;
+}
+
+@media (max-width: 991.98px) {
+    .tx-month-head {
+        grid-template-columns: 1.25rem 1fr auto;
+    }
+
+    .tx-bars,
+    .tx-month-head .tx-amount--expense,
+    .tx-month-head .tx-amount--income {
+        display: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .tx-kpis {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .tx-kpi {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+    }
+
+    .tx-kpi-value {
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .tx-kpis {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .tx-kpi {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+    }
+
+    .tx-kpi-value {
+        font-size: 1.15rem;
+    }
+
+    .tx-header .btn {
+        width: 100%;
+    }
+
+    .tx-month-head {
+        padding: 0.8rem 0.9rem;
+        gap: 0.6rem;
+    }
+
+    .tx-table td,
+    .tx-table thead th {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    .tx-segmented {
+        display: flex;
+        width: 100%;
+    }
+
+    .tx-segment {
+        flex: 1;
+    }
+
+    .tx-field {
+        flex: 1 1 100%;
+    }
+
+    .tx-table .tx-col-actions,
+    .tx-table .tx-col-amount {
+        width: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tx-month-panel {
+        animation: none;
+    }
+
+    .tx-chevron,
+    .tx-bar {
+        transition: none;
+    }
+}

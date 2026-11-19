@@ -1,5 +1,9 @@
 let depensesChart = null;
 
+const euro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const euroCourt = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+const signe = (value) => (value > 0 ? '+' : '');
+
 window.initializeDepensesChart = function () {
     console.log('Initialisation du graphique...');
     
@@ -18,9 +22,15 @@ window.initializeDepensesChart = function () {
     console.log('Canvas trouvé, création du graphique...');
     
     // Configuration du thème moderne avec couleurs vives
-    const textColor = '#ffffff';
-    const gridColor = 'rgba(255, 255, 255, 0.1)';
-    const borderColor = 'rgba(255, 255, 255, 0.2)';
+    const textColor = '#88aaff';
+    const gridColor = 'rgba(255, 255, 255, 0.06)';
+    const borderColor = 'rgba(0, 204, 255, 0.25)';
+
+    // Une seule instance par canvas : on détruit l'ancienne (retour sur la page)
+    if (depensesChart) {
+        depensesChart.destroy();
+        depensesChart = null;
+    }
 
     try {
         depensesChart = new Chart(ctx, {
@@ -62,12 +72,12 @@ window.initializeDepensesChart = function () {
                                 weight: '500'
                             },
                             callback: function(value) {
-                                return (value >= 0 ? '+' : '') + value.toFixed(2) + ' €';
+                                return signe(value) + euroCourt.format(value);
                             }
                         },
                         grid: {
-                            color: gridColor,
-                            drawBorder: false
+                            color: (context) => (context.tick && context.tick.value === 0 ? 'rgba(0, 204, 255, 0.45)' : gridColor),
+                            lineWidth: (context) => (context.tick && context.tick.value === 0 ? 2 : 1)
                         },
                         border: {
                             color: borderColor
@@ -79,7 +89,7 @@ window.initializeDepensesChart = function () {
                         display: true,
                         position: 'top',
                         labels: {
-                            color: textColor,
+                            color: '#ffffff',
                             font: {
                                 size: 12,
                                 weight: '600'
@@ -90,12 +100,11 @@ window.initializeDepensesChart = function () {
                         }
                     },
                     tooltip: {
-                        backgroundColor: 'rgba(26, 11, 46, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        titleColor: textColor,
-                        bodyColor: textColor,
-                        borderColor: 'rgba(236, 72, 153, 0.5)',
-                        borderWidth: 2,
+                        backgroundColor: 'rgba(2, 8, 30, 0.96)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(0, 204, 255, 0.5)',
+                        borderWidth: 1,
                         padding: 15,
                         titleFont: {
                             size: 14,
@@ -109,8 +118,7 @@ window.initializeDepensesChart = function () {
                             label: function(context) {
                                 const label = context.dataset.label || '';
                                 const value = context.parsed.y;
-                                const sign = value >= 0 ? '+' : '';
-                                return label + ': ' + sign + value.toFixed(2) + ' €';
+                                return label + ' : ' + signe(value) + euro.format(value);
                             }
                         }
                     }
@@ -135,14 +143,14 @@ window.updateDepensesChart = function (labels, datasets) {
     try {
         // Couleurs vives pour les graphiques (style de l'image)
         const colors = [
-            { border: '#ec4899', fill: 'rgba(236, 72, 153, 0.1)' },  // Rose vif
-            { border: '#3b82f6', fill: 'rgba(59, 130, 246, 0.1)' },   // Bleu vif
-            { border: '#06b6d4', fill: 'rgba(6, 182, 212, 0.1)' },   // Cyan
-            { border: '#10b981', fill: 'rgba(16, 185, 129, 0.1)' }, // Vert (pour gains)
-            { border: '#f59e0b', fill: 'rgba(245, 158, 11, 0.1)' },  // Orange
-            { border: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.1)' }, // Violet
-            { border: '#ef4444', fill: 'rgba(239, 68, 68, 0.1)' },  // Rouge
-            { border: '#14b8a6', fill: 'rgba(20, 184, 166, 0.1)' }   // Turquoise
+            { border: '#00ccff', fill: 'rgba(0, 204, 255, 0.10)' },   // Cyan
+            { border: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.10)' },  // Violet
+            { border: '#f59e0b', fill: 'rgba(245, 158, 11, 0.10)' },  // Ambre
+            { border: '#ec4899', fill: 'rgba(236, 72, 153, 0.10)' },  // Rose
+            { border: '#10b981', fill: 'rgba(16, 185, 129, 0.10)' },  // Émeraude
+            { border: '#3b82f6', fill: 'rgba(59, 130, 246, 0.10)' },  // Bleu
+            { border: '#ef4444', fill: 'rgba(239, 68, 68, 0.10)' },   // Rouge
+            { border: '#14b8a6', fill: 'rgba(20, 184, 166, 0.10)' }   // Turquoise
         ];
         
         // Convertir les données pour Chart.js avec couleurs vives

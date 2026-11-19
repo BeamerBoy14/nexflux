@@ -14,134 +14,161 @@
 
 <PageTitle>Clients</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestion des Clients</h2>
-        <button class="btn btn-primary" @onclick="ShowAddModal">
+<div class="container mt-4 cl-page">
+    <div class="cl-header">
+        <div>
+            <h2 class="cl-title">Clients</h2>
+            <p class="cl-subtitle">@(isLoading ? "Chargement…" : $"{clients.Count} client{(clients.Count > 1 ? "s" : "")} enregistré{(clients.Count > 1 ? "s" : "")}")</p>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="ShowAddModal">
             <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter un client
         </button>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-        @if (isLoading)
-        {
-            <div class="skeleton-list">
-                @for (var i = 0; i < 3; i++)
-                {
-                    <div class="skeleton-card">
+    <div class="cl-toolbar">
+        <div class="cl-field cl-field--grow">
+            <label for="clients-recherche" class="cl-field-label">Rechercher</label>
+            <div class="cl-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input id="clients-recherche" type="search" class="form-control" placeholder="Nom, e-mail, téléphone, ville, permis…"
+                       value="@searchText" @oninput="OnSearchInput" />
+            </div>
+        </div>
+        <div class="cl-field">
+            <label for="clients-tri" class="cl-field-label">Trier par</label>
+            <select id="clients-tri" class="form-select" value="@sortMode" @onchange="OnSortChanged">
+                <option value="defaut">ID Tel (récents d'abord)</option>
+                <option value="nom">Nom (A → Z)</option>
+                <option value="recents">Dernièrement ajoutés</option>
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="cl-list cl-list--loading" aria-hidden="true">
+            @for (var i = 0; i < 6; i++)
+            {
+                <div class="cl-skeleton-row">
+                    <div class="skeleton-chip cl-skeleton-avatar"></div>
+                    <div class="cl-skeleton-lines">
                         <div class="skeleton-line w-40"></div>
                         <div class="skeleton-line w-60"></div>
-                        <div class="skeleton-inline">
-                            <div class="skeleton-line w-100"></div>
-                            <div class="skeleton-line w-75"></div>
-                            <div class="skeleton-line w-50"></div>
-                        </div>
-                        <div class="skeleton-inline">
-                            <div class="skeleton-chip"></div>
-                            <div class="skeleton-chip"></div>
-                            <div class="skeleton-chip w-50"></div>
-                        </div>
                     </div>
-                }
-            </div>
-        }
-        else if (clients.Any())
-        {
-            <div class="inline-card-list">
-                @foreach (var client in displayedClients)
-                {
-                    <div class="inline-card inline-card--client" @onclick="() => ViewDetails(client.Id)">
-                        <div class="inline-card-overview">
-                            <span class="inline-card-date">Client depuis @FormatCreationDate(client.DateCreation)</span>
-                            <h5 class="inline-card-title">@FormatFullName(client)</h5>
-                            <div class="inline-card-tags">
-                                @if (!string.IsNullOrWhiteSpace(client.Email))
-                                {
-                                    <span class="badge bg-info">
-                                        <i class="bi bi-envelope-fill me-1" aria-hidden="true"></i>@client.Email
-                                    </span>
-                                }
-                                @if (!string.IsNullOrWhiteSpace(client.Telephone))
-                                {
-                                    <span class="badge bg-warning text-dark">
-                                        <i class="bi bi-telephone-fill me-1" aria-hidden="true"></i>@client.Telephone
-                                    </span>
-                                }
-                            </div>
-                        </div>
-                        <div class="inline-card-details">
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">Numéro ID</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.NumeroIdd)</span>
-                            </div>
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">Numéro Permis</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.NumeroPermis)</span>
-                            </div>
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">Date de naissance</span>
-                                <span class="inline-card-detail-value">@FormatDate(client.DateNaissance)</span>
-                            </div>
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">ID Tel</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.IdTel)</span>
-                            </div>
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">Code postal</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.CodePostal)</span>
-                            </div>
-                            <div class="inline-card-detail">
-                                <span class="inline-card-detail-label">Ville</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.Ville)</span>
-                            </div>
-                            <div class="inline-card-detail inline-card-detail--full">
-                                <span class="inline-card-detail-label">Adresse</span>
-                                <span class="inline-card-detail-value">@FormatValue(client.Adresse)</span>
-                            </div>
-                        </div>
-                        <div class="inline-card-actions">
-                            <button class="btn btn-icon btn-outline-primary" @onclick="() => EditClient(client)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @client.Nom">
-                                <i class="bi bi-pencil" aria-hidden="true"></i>
-                            </button>
-                            <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteClient(client)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @client.Nom">
-                                <i class="bi bi-trash" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                }
-            </div>
-            
-            @if (totalPages > 1)
-            {
-                <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div>
-                        <span class="text-muted">Page @currentPage sur @totalPages (@clients.Count client(s) au total)</span>
-                    </div>
-                    <div class="d-flex gap-2 align-items-center">
-                        <label for="clients-champ-1" class="form-label mb-0">Page :</label>
-                        <select id="clients-champ-1" class="form-select form-select-sm select-auto" aria-label="Page"
-                                @onchange="OnPageChanged"
-                                value="@currentPage">
-                            @for (int i = 1; i <= totalPages; i++)
-                            {
-                                <option value="@i">Page @i</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            }
-        }
-        else
-            {
-                <div class="client-card-empty text-center text-muted">
-                    <i class="bi bi-people display-6 mb-3" aria-hidden="true"></i>
-                    <p class="fw-semibold mb-1">Aucun client enregistré</p>
-                    <p class="mb-0">Ajoutez votre premier client pour commencer.</p>
                 </div>
             }
         </div>
-    </div>
+    }
+    else if (!clients.Any())
+    {
+        <div class="cl-empty">
+            <i class="bi bi-people" aria-hidden="true"></i>
+            <p class="cl-empty-title">Aucun client enregistré</p>
+            <p>Ajoutez votre premier client pour commencer.</p>
+        </div>
+    }
+    else if (!FilteredClients.Any())
+    {
+        <div class="cl-empty">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <p class="cl-empty-title">Aucun résultat</p>
+            <p>Aucun client ne correspond à « @searchText ».</p>
+        </div>
+    }
+    else
+    {
+        <div class="cl-list">
+            <div class="cl-table-wrap">
+                <table class="cl-table">
+                    <caption class="visually-hidden">Liste des clients</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Client</th>
+                            <th scope="col">Contact</th>
+                            <th scope="col" class="cl-col-wide">Localisation</th>
+                            <th scope="col" class="cl-col-wide">Pièces</th>
+                            <th scope="col" class="cl-col-wide">ID Tel</th>
+                            <th scope="col" class="cl-col-actions"><span class="visually-hidden">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var client in displayedClients)
+                        {
+                            <tr @onclick="() => ViewDetails(client.Id)">
+                                <td class="cl-col-client">
+                                    <div class="cl-client-cell">
+                                        <span class="cl-avatar" aria-hidden="true">@Initials(client)</span>
+                                        <span class="cl-identity">
+                                            <a class="cl-name" href="/clients/@client.Id" @onclick:stopPropagation="true">@FormatFullName(client)</a>
+                                            <small>Client depuis @FormatCreationDate(client.DateCreation)</small>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="cl-col-contact">
+                                    @if (!string.IsNullOrWhiteSpace(client.Email))
+                                    {
+                                        <span class="cl-line"><i class="bi bi-envelope" aria-hidden="true"></i>@client.Email</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(client.Telephone))
+                                    {
+                                        <span class="cl-line"><i class="bi bi-telephone" aria-hidden="true"></i>@client.Telephone</span>
+                                    }
+                                </td>
+                                <td class="cl-col-wide">
+                                    @if (!string.IsNullOrWhiteSpace(client.Ville) || !string.IsNullOrWhiteSpace(client.CodePostal))
+                                    {
+                                        <span class="cl-line"><i class="bi bi-geo-alt" aria-hidden="true"></i>@($"{client.Ville} {client.CodePostal}".Trim())</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="cl-none">-</span>
+                                    }
+                                </td>
+                                <td class="cl-col-wide">
+                                    <span class="cl-line"><span class="cl-key">ID</span>@FormatValue(client.NumeroIdd)</span>
+                                    <span class="cl-line"><span class="cl-key">Permis</span>@FormatValue(client.NumeroPermis)</span>
+                                </td>
+                                <td class="cl-col-wide">
+                                    @if (!string.IsNullOrWhiteSpace(client.IdTel))
+                                    {
+                                        <span class="cl-chip">@client.IdTel</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="cl-none">-</span>
+                                    }
+                                </td>
+                                <td class="cl-col-actions">
+                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="() => EditClient(client)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @client.Nom">
+                                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="() => DeleteClient(client)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @client.Nom">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <nav class="cl-pager" aria-label="Pagination des clients">
+                    <span class="cl-pager-info">@RangeLabel</span>
+                    <div class="cl-pager-buttons">
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="PreviousPage" disabled="@(currentPage <= 1)" aria-label="Page précédente">
+                            <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                        </button>
+                        <span class="cl-pager-page">Page @currentPage / @totalPages</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= totalPages)" aria-label="Page suivante">
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </nav>
+            }
+        </div>
+    }
 </div>
 
 <!-- Modal -->
@@ -236,8 +263,11 @@
     private string? errorMessage = null;
     private bool isLoading = true;
     private int currentPage = 1;
-    private int itemsPerPage = 3;
+    private const int ItemsPerPage = 12;
     private int totalPages = 1;
+    private string searchText = string.Empty;
+    private string sortMode = "defaut";
+    private List<Client> filteredClients = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,34 +300,68 @@
     
     private void UpdateDisplayedClients()
     {
-        totalPages = (int)Math.Ceiling((double)clients.Count / itemsPerPage);
-        if (currentPage > totalPages && totalPages > 0)
+        var texte = searchText.Trim();
+        IEnumerable<Client> resultat = clients;
+
+        if (texte.Length > 0)
         {
-            currentPage = totalPages;
+            resultat = resultat.Where(c =>
+                Contient(c.Nom, texte) || Contient(c.Prenom, texte) || Contient(c.Email, texte) ||
+                Contient(c.Telephone, texte) || Contient(c.Ville, texte) || Contient(c.CodePostal, texte) ||
+                Contient(c.NumeroIdd, texte) || Contient(c.NumeroPermis, texte) || Contient(c.IdTel, texte));
         }
-        if (currentPage < 1)
+
+        resultat = sortMode switch
         {
-            currentPage = 1;
-        }
-        
-        var skip = (currentPage - 1) * itemsPerPage;
-        displayedClients = clients.Skip(skip).Take(itemsPerPage).ToList();
+            "nom" => resultat.OrderBy(c => c.Nom, StringComparer.CurrentCultureIgnoreCase).ThenBy(c => c.Prenom),
+            "recents" => resultat.OrderByDescending(c => c.DateCreation).ThenByDescending(c => c.Id),
+            _ => resultat
+        };
+
+        filteredClients = resultat.ToList();
+        totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredClients.Count / ItemsPerPage));
+        currentPage = Math.Clamp(currentPage, 1, totalPages);
+        displayedClients = filteredClients.Skip((currentPage - 1) * ItemsPerPage).Take(ItemsPerPage).ToList();
     }
-    
-    private void GoToPage(int page)
+
+    private IEnumerable<Client> FilteredClients => filteredClients;
+
+    private void OnSearchInput(ChangeEventArgs e)
     {
-        currentPage = page;
+        searchText = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
         UpdateDisplayedClients();
     }
-    
-    private void OnPageChanged(ChangeEventArgs e)
+
+    private void OnSortChanged(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out int page))
+        sortMode = e.Value?.ToString() ?? "defaut";
+        currentPage = 1;
+        UpdateDisplayedClients();
+    }
+
+    private static bool Contient(string? valeur, string texte)
+        => valeur != null && CultureInfo.GetCultureInfo("fr-FR").CompareInfo.IndexOf(valeur, texte, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+
+    private string RangeLabel
+    {
+        get
         {
-            GoToPage(page);
+            var debut = (currentPage - 1) * ItemsPerPage + 1;
+            var fin = Math.Min(currentPage * ItemsPerPage, filteredClients.Count);
+            return $"{debut}–{fin} sur {filteredClients.Count} client{(filteredClients.Count > 1 ? "s" : "")}";
         }
     }
-    
+
+    private static string Initials(Client client)
+    {
+        var lettres = new[] { client.Prenom, client.Nom }
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Select(v => char.ToUpperInvariant(v!.Trim()[0]));
+        var resultat = string.Concat(lettres);
+        return resultat.Length > 0 ? resultat : "?";
+    }
+
     private void NextPage()
     {
         if (currentPage < totalPages)

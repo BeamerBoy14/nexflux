@@ -291,3 +291,486 @@
         left: 0;
     }
 }
+
+/* ============================================
+   PAGE VOITURES : synthèse, recherche et tableau compact
+   ============================================ */
+
+.vt-page {
+    --vt-line: rgba(255, 255, 255, 0.07);
+    --vt-panel: rgba(2, 8, 30, 0.72);
+    --vt-expense: #f87171;
+    padding-bottom: 3rem;
+}
+
+.vt-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.vt-title {
+    margin: 0;
+    font-size: 1.6rem;
+}
+
+.vt-subtitle {
+    margin: 0.15rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Synthèse */
+.vt-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.vt-kpi {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--vt-panel);
+}
+
+.vt-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--vt-accent, var(--blue-light));
+}
+
+.vt-kpi--expense {
+    --vt-accent: var(--vt-expense);
+}
+
+.vt-kpi-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.vt-kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--vt-accent, var(--text-primary));
+}
+
+.vt-kpi-value--text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 1.25rem;
+    line-height: 1.8rem;
+}
+
+.vt-kpi-sub {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+/* Filtres */
+.vt-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--vt-panel);
+}
+
+.vt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 13rem;
+}
+
+.vt-field--grow {
+    flex: 1 1 18rem;
+}
+
+.vt-field-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.vt-search {
+    position: relative;
+}
+
+.vt-search > i {
+    position: absolute;
+    top: 50%;
+    left: 0.85rem;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.vt-search .form-control {
+    padding-left: 2.4rem;
+}
+
+/* Liste */
+.vt-list {
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    background: var(--vt-panel);
+    overflow: hidden;
+}
+
+.vt-table-wrap {
+    overflow-x: auto;
+}
+
+.vt-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.vt-table thead th {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--vt-line);
+    background: rgba(0, 0, 20, 0.5);
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.vt-table tbody tr {
+    border-bottom: 1px solid var(--vt-line);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.vt-table tbody tr:last-child {
+    border-bottom: 0;
+}
+
+.vt-table tbody tr:hover {
+    background: rgba(0, 204, 255, 0.06);
+}
+
+.vt-table td {
+    padding: 0.85rem 1rem;
+    vertical-align: middle;
+}
+
+.vt-col-voiture {
+    min-width: 16rem;
+}
+
+.vt-voiture-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.vt-identity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.35;
+}
+
+.vt-name {
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.vt-name:hover {
+    color: var(--blue-light);
+    text-decoration: underline;
+}
+
+.vt-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.vt-inline-meta {
+    display: none;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.vt-table td.vt-col-wide {
+    min-width: 12rem;
+    white-space: nowrap;
+}
+
+.vt-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    color: var(--text-primary);
+    font-size: 0.87rem;
+    line-height: 1.55;
+}
+
+.vt-key {
+    display: inline-block;
+    min-width: 3.2rem;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.vt-col-amount {
+    min-width: 11rem;
+    text-align: right;
+}
+
+.vt-amount {
+    display: block;
+    color: var(--vt-expense);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.vt-share {
+    display: block;
+    height: 5px;
+    margin: 0.35rem 0 0.2rem auto;
+    max-width: 9rem;
+    overflow: hidden;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.vt-share-bar {
+    display: block;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 3px;
+    background: var(--vt-expense);
+    transition: width 0.3s ease;
+}
+
+.vt-last {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.vt-col-actions {
+    width: 6.5rem;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.vt-table .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.25rem;
+    font-size: 0.8rem;
+}
+
+/* États vides et chargement */
+.vt-empty {
+    padding: 3rem 1rem;
+    border: 1px dashed var(--card-border);
+    border-radius: 16px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.vt-empty i {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    color: var(--blue-light);
+}
+
+.vt-empty p {
+    margin: 0;
+}
+
+.vt-empty-title {
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.vt-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--vt-line);
+}
+
+.vt-skeleton-row:last-child {
+    border-bottom: 0;
+}
+
+.vt-skeleton-logo {
+    flex: 0 0 auto;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 12px;
+}
+
+.vt-skeleton-lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (max-width: 1199.98px) {
+    .vt-table .vt-col-wide {
+        display: none;
+    }
+
+    .vt-inline-meta {
+        display: block;
+    }
+
+    .vt-inline-meta:empty {
+        display: none;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .vt-kpis {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .vt-kpi {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1rem;
+    }
+
+    .vt-kpi-value {
+        font-size: 1.15rem;
+    }
+
+    .vt-kpi-sub {
+        flex-basis: 100%;
+    }
+
+    /* Une ligne = une carte : voiture et actions en haut, dépenses dessous */
+    .vt-table thead {
+        display: none;
+    }
+
+    .vt-table,
+    .vt-table tbody {
+        display: block;
+    }
+
+    .vt-table tbody tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "voiture actions"
+            "montant montant";
+        gap: 0.6rem 0.75rem;
+        padding: 0.85rem 0.9rem;
+    }
+
+    .vt-table td {
+        display: block;
+        padding: 0;
+    }
+
+    .vt-table .vt-col-voiture {
+        grid-area: voiture;
+        min-width: 0;
+    }
+
+    .vt-table .vt-col-amount {
+        grid-area: montant;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .vt-table .vt-col-amount .vt-share {
+        margin-left: 0;
+        max-width: none;
+    }
+
+    .vt-table .vt-col-actions {
+        grid-area: actions;
+        width: auto;
+        align-self: start;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .vt-header .btn {
+        width: 100%;
+    }
+
+    .vt-voiture-cell {
+        gap: 0.7rem;
+    }
+
+    .vt-voiture-cell .voiture-logo--sm {
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0.3rem;
+    }
+
+    .vt-voiture-cell .voiture-logo--static {
+        width: auto;
+        max-width: 4.25rem;
+    }
+
+    .vt-desc {
+        display: none;
+    }
+
+    .vt-name {
+        font-size: 1rem;
+    }
+
+    .vt-field {
+        flex: 1 1 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vt-share-bar,
+    .vt-table tbody tr {
+        transition: none;
+    }
+}

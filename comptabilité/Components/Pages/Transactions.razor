@@ -15,236 +15,182 @@
 
 <PageTitle>Transactions - Récapitulatif des dépenses</PageTitle>
 
-<div class="container mt-4">
-    <h2 class="mb-4">Récapitulatif des Dépenses et Gains</h2>
-
-    <!-- Filtres par période -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Filtres par période</h5>
+<div class="container mt-4 tx-page">
+    <div class="tx-header">
+        <div>
+            <h2 class="tx-title">Dépenses et gains</h2>
+            <p class="tx-subtitle">@PeriodLabel</p>
         </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label for="transactions-champ-1" class="form-label">Année</label>
-                    <select id="transactions-champ-1" class="form-select" @bind="selectedYear" @bind:after="LoadRecap">
-                        <option value="0">Toutes les années</option>
-                        @foreach (var year in availableYears.OrderByDescending(y => y))
-                        {
-                            <option value="@year">@year</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label for="transactions-champ-2" class="form-label">Type</label>
-                    <select id="transactions-champ-2" class="form-select" @bind="selectedType" @bind:after="LoadRecap">
-                        <option value="">Tous</option>
-                        <option value="Dépense">Dépenses</option>
-                        <option value="Gain">Gains</option>
-                    </select>
-                </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button class="btn btn-primary w-100" @onclick="ShowAddTransactionModal">
-                        <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter une transaction
-                    </button>
-                </div>
+        <button type="button" class="btn btn-primary" @onclick="ShowAddTransactionModal">
+            <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter une transaction
+        </button>
+    </div>
+
+    <!-- Synthèse de la période -->
+    <div class="tx-kpis">
+        <div class="tx-kpi tx-kpi--expense">
+            <span class="tx-kpi-label">Dépenses</span>
+            <span class="tx-kpi-value">@SignedMontant(TotalDepensesPeriode, '-')</span>
+        </div>
+        <div class="tx-kpi tx-kpi--income">
+            <span class="tx-kpi-label">Gains</span>
+            <span class="tx-kpi-value">@SignedMontant(TotalGainsPeriode, '+')</span>
+        </div>
+        <div class="tx-kpi @(SoldePeriode >= 0 ? "tx-kpi--income" : "tx-kpi--expense")">
+            <span class="tx-kpi-label">Solde</span>
+            <span class="tx-kpi-value">@SignedMontant(Math.Abs(SoldePeriode), SoldePeriode >= 0 ? '+' : '-')</span>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="tx-toolbar">
+        <div class="tx-field">
+            <label for="transactions-champ-1" class="tx-field-label">Année</label>
+            <select id="transactions-champ-1" class="form-select" @bind="selectedYear" @bind:after="OnFilterChanged">
+                <option value="0">Toutes les années</option>
+                @foreach (var year in availableYears.OrderByDescending(y => y))
+                {
+                    <option value="@year">@year</option>
+                }
+            </select>
+        </div>
+
+        <div class="tx-field">
+            <span class="tx-field-label" id="tx-type-label">Type</span>
+            <div class="tx-segmented" role="group" aria-labelledby="tx-type-label">
+                <button type="button" class="@SegmentClass("")" aria-pressed="@(selectedType == "")" @onclick='() => SetType("")'>Tous</button>
+                <button type="button" class="@SegmentClass("Dépense")" aria-pressed="@(selectedType == "Dépense")" @onclick='() => SetType("Dépense")'>Dépenses</button>
+                <button type="button" class="@SegmentClass("Gain")" aria-pressed="@(selectedType == "Gain")" @onclick='() => SetType("Gain")'>Gains</button>
             </div>
-            @if (selectedMonthFilter.HasValue)
+        </div>
+
+        <div class="tx-field tx-field--grow">
+            <label for="transactions-recherche" class="tx-field-label">Rechercher dans le mois ouvert</label>
+            <div class="tx-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input id="transactions-recherche" type="search" class="form-control" placeholder="Libellé, poste, voiture…"
+                       @bind="searchText" @bind:event="oninput" disabled="@(!selectedMonthFilter.HasValue)" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Mois -->
+    @if (recapByMonth != null && recapByMonth.Any())
+    {
+        var mois = recapByMonth.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month).ToList();
+        var echelle = Math.Max(1m, mois.Max(r => Math.Max(r.TotalDepenses, r.TotalGains)));
+
+        <div class="tx-months">
+            @foreach (var recap in mois)
             {
-                <div class="alert alert-info d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mt-3 mb-0">
-                    <span class="fw-semibold">
-                        Filtre appliqué : @GetMonthName(selectedMonthFilter.Value) @(selectedYear > 0 ? selectedYear.ToString() : "(toutes les années)")
-                    </span>
-                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearMonthFilter">
-                        Réinitialiser le filtre mois
+                var solde = recap.TotalGains - recap.TotalDepenses;
+                var ouvert = IsMonthOpen(recap);
+                var panelId = $"tx-mois-{recap.Year}-{recap.Month}";
+                <section class="tx-month @(ouvert ? "is-open" : "")">
+                    <button type="button" class="tx-month-head" aria-expanded="@ouvert" aria-controls="@panelId"
+                            @onclick="() => ToggleMonth(recap.Month, recap.Year)">
+                        <i class="bi bi-chevron-right tx-chevron" aria-hidden="true"></i>
+                        <span class="tx-month-name">
+                            <strong>@GetMonthName(recap.Month) @recap.Year</strong>
+                            <small>@recap.Count @(recap.Count > 1 ? "opérations" : "opération")</small>
+                        </span>
+                        <span class="tx-bars" aria-hidden="true">
+                            <span class="tx-bar tx-bar--expense" style="width:@BarWidth(recap.TotalDepenses, echelle)%"></span>
+                            <span class="tx-bar tx-bar--income" style="width:@BarWidth(recap.TotalGains, echelle)%"></span>
+                        </span>
+                        <span class="tx-amount tx-amount--expense" title="Dépenses">@SignedMontant(recap.TotalDepenses, '-')</span>
+                        <span class="tx-amount tx-amount--income" title="Gains">@SignedMontant(recap.TotalGains, '+')</span>
+                        <span class="tx-amount tx-amount--solde @(solde >= 0 ? "is-positive" : "is-negative")" title="Solde">@SignedMontant(Math.Abs(solde), solde >= 0 ? '+' : '-')</span>
                     </button>
-                </div>
-            }
-        </div>
-    </div>
 
-    <!-- Récapitulatif mensuel -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Récapitulatif par mois</h5>
-                </div>
-                <div class="card-body">
-                    @if (recapByMonth != null && recapByMonth.Any())
+                    @if (ouvert)
                     {
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <caption class="visually-hidden">Récapitulatif mensuel des transactions</caption>
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Période</th>
-                                        <th scope="col" class="text-end">Total Dépenses</th>
-                                        <th scope="col" class="text-end">Total Gains</th>
-                                        <th scope="col" class="text-end">Solde</th>
-                                        <th scope="col" class="text-center">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var recap in recapByMonth.OrderByDescending(r => r.Year).ThenByDescending(r => r.Month))
-                                    {
-                                        var solde = recap.TotalGains - recap.TotalDepenses;
-                                        var isPositive = solde >= 0;
-                                        <tr>
-                                            <td><strong>@GetMonthName(recap.Month) @recap.Year</strong></td>
-                                            <td class="text-end">-@recap.TotalDepenses.ToString("N2") €</td>
-                                            <td class="text-end">+@recap.TotalGains.ToString("N2") €</td>
-                                            <td class="text-end @(isPositive ? "text-success" : "text-danger")"><strong>@(solde >= 0 ? "+" : "")@solde.ToString("N2") €</strong></td>
-                                            <td class="text-center">
-                                                <button class="btn btn-sm btn-outline-primary" @onclick="async () => await ViewMonthDetails(recap.Month, recap.Year)">
-                                                    Détails
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-muted">Aucune transaction trouvée pour cette période.</p>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Détails du mois (bas de page) -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="month-details-wrapper month-details-wrapper--bottom">
-                <div class="card month-details-card @(detailsExpanded ? "expanded" : "collapsed")">
-                    <div class="card-header d-flex justify-content-between align-items-start">
-                        <div>
-                            <h5 class="mb-1">Détails du mois</h5>
-                            <small class="text-muted">@SelectedMonthLabel</small>
-                        </div>
-                        <span class="badge bg-secondary">@SelectedMonthTransactionCount transaction(s)</span>
-                    </div>
-                    <div class="card-body">
-                        @if (!selectedMonthFilter.HasValue)
-                        {
-                            <div class="month-details-empty text-center">
-                                <i class="bi bi-calendar4-week display-5 text-info mb-3" aria-hidden="true"></i>
-                                <p class="fw-semibold mb-2">Aucun mois sélectionné</p>
-                                <p class="text-muted mb-0">Cliquez sur « Détails » dans le tableau pour afficher les transactions.</p>
-                            </div>
-                        }
-                        else
-                        {
-                            var recap = SelectedMonthRecap;
-                            if (recap != null)
+                        <div class="tx-month-panel" id="@panelId">
+                            @if (isLoadingMonth)
                             {
-                                var solde = recap.TotalGains - recap.TotalDepenses;
-                                var soldePositif = solde >= 0;
-                                <div class="month-summary mb-3">
-                                    <div class="month-summary-card">
-                                        <span class="month-summary-label text-muted">Total Dépenses</span>
-                                        <span class="month-summary-value text-danger">-@recap.TotalDepenses.ToString("N2") €</span>
-                                    </div>
-                                    <div class="month-summary-card">
-                                        <span class="month-summary-label text-muted">Total Gains</span>
-                                        <span class="month-summary-value text-success">+@recap.TotalGains.ToString("N2") €</span>
-                                    </div>
-                                    <div class="month-summary-card">
-                                        <span class="month-summary-label text-muted">Solde</span>
-                                        <span class="month-summary-value @(soldePositif ? "text-success" : "text-danger")">
-                                            @(soldePositif ? "+" : "")@solde.ToString("N2") €
-                                        </span>
-                                    </div>
-                                </div>
+                                <p class="tx-empty" role="status">Chargement…</p>
                             }
-
-                            @if (transactions.Any())
+                            else if (FilteredTransactions.Any())
                             {
-                                <div class="month-details-list">
-                                    @foreach (var transaction in transactions.OrderByDescending(t => t.Date))
-                                    {
-                                        <div class="transaction-card @(transaction.Type == "Dépense" ? "expense" : "income")">
-                                            <div class="transaction-card-header">
-                                                <div>
-                                                    <span class="transaction-date">@transaction.Date.ToString("dd MMMM yyyy")</span>
-                                                    <h6 class="transaction-title">@(!string.IsNullOrWhiteSpace(transaction.Libelle) ? transaction.Libelle : "Sans libellé")</h6>
-                                                </div>
-                                                <div class="transaction-amount @(transaction.Type == "Dépense" ? "text-danger" : "text-success")">
-                                                    @(transaction.Type == "Dépense" ? "-" : "+")@Math.Abs(transaction.Montant).ToString("N2") €
-                                                </div>
-                                            </div>
-                                            <div class="transaction-card-body">
-                                                <div class="transaction-badges">
-                                                    <span class="badge type-badge @(transaction.Type == "Dépense" ? "bg-danger" : "bg-success")">
-                                                        <i class="bi @(transaction.Type == "Dépense" ? "bi-arrow-down-circle" : "bi-arrow-up-circle")"></i>
-                                                        @transaction.Type
-                                                    </span>
-                                                    @if (transaction.Poste != null)
-                                                    {
-                                                        <span class="badge bg-info">
-                                                            <i class="bi bi-folder-fill me-1" aria-hidden="true"></i>@transaction.Poste.Nom
+                                <div class="tx-table-wrap">
+                                    <table class="tx-table">
+                                        <caption class="visually-hidden">Transactions de @GetMonthName(recap.Month) @recap.Year</caption>
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Date</th>
+                                                <th scope="col">Libellé</th>
+                                                <th scope="col" class="tx-col-amount">Montant</th>
+                                                <th scope="col" class="tx-col-actions"><span class="visually-hidden">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var transaction in FilteredTransactions)
+                                            {
+                                                var depense = transaction.Type == "Dépense";
+                                                <tr class="@(depense ? "is-expense" : "is-income")">
+                                                    <td class="tx-col-date">
+                                                        <span class="tx-day">@transaction.Date.ToString("dd", Fr)</span>
+                                                        <span class="tx-weekday">@transaction.Date.ToString("ddd", Fr)</span>
+                                                    </td>
+                                                    <td class="tx-col-label">
+                                                        <span class="tx-label">@(!string.IsNullOrWhiteSpace(transaction.Libelle) ? transaction.Libelle : "Sans libellé")</span>
+                                                        @if (!string.IsNullOrWhiteSpace(transaction.Description))
+                                                        {
+                                                            <span class="tx-desc" title="@transaction.Description">@transaction.Description</span>
+                                                        }
+                                                        <span class="tx-tags">
+                                                            @if (transaction.Poste != null)
+                                                            {
+                                                                <span class="tx-tag tx-tag--poste"><i class="bi bi-folder-fill" aria-hidden="true"></i>@transaction.Poste.Nom</span>
+                                                            }
+                                                            @if (transaction.Voiture != null)
+                                                            {
+                                                                <span class="tx-tag tx-tag--voiture"><i class="bi bi-car-front-fill" aria-hidden="true"></i>@transaction.Voiture.Nom</span>
+                                                            }
+                                                            @if (transaction.Client != null)
+                                                            {
+                                                                <span class="tx-tag tx-tag--client"><i class="bi bi-person-vcard-fill" aria-hidden="true"></i>@transaction.Client.Nom @transaction.Client.Prenom</span>
+                                                            }
+                                                            @if (transaction.Reservation != null)
+                                                            {
+                                                                <span class="tx-tag tx-tag--reservation"><i class="bi bi-calendar-check" aria-hidden="true"></i>Réservation #@transaction.Reservation.Id</span>
+                                                            }
                                                         </span>
-                                                    }
-                                                    @if (transaction.Client != null)
-                                                    {
-                                                        <span class="badge bg-warning text-dark">
-                                                            <i class="bi bi-person-vcard-fill me-1" aria-hidden="true"></i>@transaction.Client.Nom @transaction.Client.Prenom
-                                                        </span>
-                                                    }
-                                                    @if (transaction.Voiture != null)
-                                                    {
-                                                        <span class="badge bg-secondary">
-                                                            <i class="bi bi-car-front-fill me-1" aria-hidden="true"></i>@transaction.Voiture.Nom
-                                                        </span>
-                                                    }
-                                                @if (transaction.Reservation != null)
-                                                {
-                                                    <span class="badge bg-primary">
-                                                        <i class="bi bi-calendar-check me-1" aria-hidden="true"></i>Réservation #@transaction.Reservation.Id
-                                                    </span>
-                                                }
-                                                </div>
-                                                @if (!string.IsNullOrWhiteSpace(transaction.Description))
-                                                {
-                                                    <p class="transaction-description">@transaction.Description</p>
-                                                }
-                                            </div>
-                                            <div class="transaction-card-footer">
-                                                <div class="transaction-meta">
-                                                    <span class="text-muted">
-                                                        Créée le @transaction.DateCreation.ToString("dd/MM/yyyy HH:mm")
-                                                    </span>
-                                                </div>
-                                                <div class="transaction-actions">
-                                                    <button class="btn btn-icon btn-outline-primary" @onclick="() => EditTransaction(transaction)" title="Modifier" aria-label="Modifier @transaction.Libelle">
-                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
-                                                    </button>
-                                                    <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteTransaction(transaction)" title="Supprimer" aria-label="Supprimer @transaction.Libelle">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }
+                                                    </td>
+                                                    <td class="tx-col-amount">
+                                                        <span class="tx-amount @(depense ? "tx-amount--expense" : "tx-amount--income")">@(depense ? "-" : "+")@FormatMontant(Math.Abs(transaction.Montant))</span>
+                                                    </td>
+                                                    <td class="tx-col-actions">
+                                                        <button type="button" class="btn btn-icon btn-outline-primary" @onclick="() => EditTransaction(transaction)" title="Modifier" aria-label="Modifier @transaction.Libelle">
+                                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-icon btn-outline-danger" @onclick="() => DeleteTransaction(transaction)" title="Supprimer" aria-label="Supprimer @transaction.Libelle">
+                                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
                                 </div>
                             }
                             else
                             {
-                                <div class="month-details-empty text-center">
-                                    <i class="bi bi-inbox display-6 text-muted mb-3" aria-hidden="true"></i>
-                                    <p class="fw-semibold mb-2">Aucune transaction</p>
-                                    <p class="text-muted mb-0">Aucune donnée n'est disponible pour ce mois.</p>
-                                </div>
+                                <p class="tx-empty">@(string.IsNullOrWhiteSpace(searchText) ? "Aucune transaction pour ce mois." : "Aucune transaction ne correspond à la recherche.")</p>
                             }
-                        }
-                    </div>
-                </div>
-            </div>
+                        </div>
+                    }
+                </section>
+            }
         </div>
-    </div>
+    }
+    else
+    {
+        <div class="tx-empty tx-empty--page">
+            <i class="bi bi-inbox" aria-hidden="true"></i>
+            <p>Aucune transaction trouvée pour cette période.</p>
+        </div>
+    }
 </div>
 
 <!-- Modal pour ajouter/éditer une transaction -->
@@ -403,9 +349,10 @@
     private int? selectedClientId;
     private Poste? selectedPoste;
     private string? statusMessage;
-    private bool detailsExpanded = true;
-    private bool isAnimatingDetails;
-    private const int DetailsAnimationDuration = 280;
+    private int? selectedMonthYear;
+    private string searchText = string.Empty;
+    private bool isLoadingMonth;
+    private static readonly CultureInfo Fr = CultureInfo.GetCultureInfo("fr-FR");
 
     protected override async Task OnInitializedAsync()
     {
@@ -521,7 +468,7 @@
     private void LoadAvailableYears()
     {
         // Générer une liste d'années de 2023 à 2027
-        availableYears = Enumerable.Range(2023, 2027 - 2023 + 1).ToList();
+        availableYears = Enumerable.Range(2023, Math.Max(2027, DateTime.Now.Year) - 2023 + 1).ToList();
         
         // Ajouter aussi les années qui existent dans les transactions si elles ne sont pas déjà dans la liste
         if (transactions.Any())
@@ -543,7 +490,7 @@
     private async Task LoadTransactions()
     {
         var userId = AuthService.GetUtilisateurId();
-        if (!userId.HasValue)
+        if (!userId.HasValue || !selectedMonthFilter.HasValue || !selectedMonthYear.HasValue)
         {
             transactions = new List<Transaction>();
             return;
@@ -551,20 +498,10 @@
 
         using var scope = ServiceScopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ComptabiliteDbContext>();
-        
+
         var query = db.Transactions
             .Where(t => t.UtilisateurId == userId.Value)
-            .AsQueryable();
-
-        if (selectedMonthFilter.HasValue)
-        {
-            query = query.Where(t => t.Date.Month == selectedMonthFilter.Value);
-        }
-
-        if (selectedYear > 0)
-        {
-            query = query.Where(t => t.Date.Year == selectedYear);
-        }
+            .Where(t => t.Date.Month == selectedMonthFilter.Value && t.Date.Year == selectedMonthYear.Value);
 
         if (!string.IsNullOrEmpty(selectedType))
         {
@@ -617,7 +554,8 @@
                 Year = g.Key.Year,
                 Month = g.Key.Month,
                 TotalDepenses = g.Where(t => t.Type == "Dépense").Sum(t => t.Montant),
-                TotalGains = g.Where(t => t.Type == "Gain").Sum(t => t.Montant)
+                TotalGains = g.Where(t => t.Type == "Gain").Sum(t => t.Montant),
+                Count = g.Count()
             })
             .ToList();
 
@@ -761,30 +699,6 @@
         statusMessage = null;
     }
 
-    private async Task ViewMonthDetails(int month, int year)
-    {
-        await AnimateDetailsPanel(async () =>
-        {
-            selectedMonthFilter = month;
-            selectedYear = year;
-            await LoadRecap();
-        });
-    }
-
-    private async Task ClearMonthFilter()
-    {
-        if (!selectedMonthFilter.HasValue)
-        {
-            return;
-        }
-
-        await AnimateDetailsPanel(async () =>
-        {
-            selectedMonthFilter = null;
-            await LoadRecap();
-        });
-    }
-
     private string GetMonthName(int month)
     {
         return new DateTime(2000, month, 1).ToString("MMMM", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
@@ -823,86 +737,98 @@
         return await JSRuntime.InvokeAsync<bool>("confirm", "Êtes-vous sûr de vouloir supprimer cette transaction ?");
     }
 
-    private async Task AnimateDetailsPanel(Func<Task> updateAction)
+    private bool IsMonthOpen(RecapMensuel recap)
+        => selectedMonthFilter == recap.Month && selectedMonthYear == recap.Year;
+
+    private async Task ToggleMonth(int month, int year)
     {
-        if (isAnimatingDetails)
+        if (selectedMonthFilter == month && selectedMonthYear == year)
         {
-            if (updateAction != null)
-            {
-                await updateAction();
-            }
-            return;
+            selectedMonthFilter = null;
+            selectedMonthYear = null;
+        }
+        else
+        {
+            selectedMonthFilter = month;
+            selectedMonthYear = year;
         }
 
-        isAnimatingDetails = true;
+        searchText = string.Empty;
+
+        if (selectedMonthFilter.HasValue)
+        {
+            isLoadingMonth = true;
+            transactions = new List<Transaction>();
+            StateHasChanged();
+        }
 
         try
         {
-            detailsExpanded = false;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(DetailsAnimationDuration);
-
-            if (updateAction != null)
-            {
-                await updateAction();
-            }
-
-            detailsExpanded = true;
-            await InvokeAsync(StateHasChanged);
-            await Task.Delay(DetailsAnimationDuration);
+            await LoadTransactions();
         }
         finally
         {
-            isAnimatingDetails = false;
+            isLoadingMonth = false;
         }
     }
 
-    private RecapMensuel? SelectedMonthRecap
+    private async Task OnFilterChanged()
+    {
+        selectedMonthFilter = null;
+        selectedMonthYear = null;
+        searchText = string.Empty;
+        await LoadRecap();
+    }
+
+    private async Task SetType(string type)
+    {
+        if (selectedType == type)
+        {
+            return;
+        }
+
+        selectedType = type;
+        await OnFilterChanged();
+    }
+
+    private string SegmentClass(string type) => selectedType == type ? "tx-segment is-active" : "tx-segment";
+
+    private static string FormatMontant(decimal montant) => $"{montant.ToString("N2", Fr)} €";
+
+    private static string SignedMontant(decimal montant, char signe) => montant == 0 ? FormatMontant(0) : signe + FormatMontant(montant);
+
+    private static string BarWidth(decimal montant, decimal echelle)
+        => Math.Round(Math.Min(100m, montant / echelle * 100m), 1).ToString(CultureInfo.InvariantCulture);
+
+    private decimal TotalDepensesPeriode => recapByMonth.Sum(r => r.TotalDepenses);
+
+    private decimal TotalGainsPeriode => recapByMonth.Sum(r => r.TotalGains);
+
+    private decimal SoldePeriode => TotalGainsPeriode - TotalDepensesPeriode;
+
+    private string PeriodLabel => selectedYear > 0 ? $"Année {selectedYear}" : "Toutes les années";
+
+    private IEnumerable<Transaction> FilteredTransactions
     {
         get
         {
-            if (!selectedMonthFilter.HasValue || recapByMonth == null)
+            var texte = searchText?.Trim();
+            var resultat = transactions.AsEnumerable();
+
+            if (!string.IsNullOrEmpty(texte))
             {
-                return null;
+                resultat = resultat.Where(t =>
+                    Contient(t.Libelle, texte) || Contient(t.Description, texte) ||
+                    Contient(t.Poste?.Nom, texte) || Contient(t.Voiture?.Nom, texte) ||
+                    Contient(t.Client?.Nom, texte) || Contient(t.Client?.Prenom, texte));
             }
 
-            var matches = recapByMonth
-                .Where(r => r.Month == selectedMonthFilter.Value);
-
-            if (selectedYear > 0)
-            {
-                matches = matches.Where(r => r.Year == selectedYear);
-            }
-
-            return matches
-                .OrderByDescending(r => r.Year)
-                .FirstOrDefault();
+            return resultat.OrderByDescending(t => t.Date).ThenByDescending(t => t.Id);
         }
     }
 
-    private string SelectedMonthLabel
-    {
-        get
-        {
-            if (!selectedMonthFilter.HasValue)
-            {
-                return "Aucun mois sélectionné";
-            }
-
-            var recap = SelectedMonthRecap;
-            var yearText = selectedYear > 0 ? selectedYear.ToString() : recap?.Year.ToString();
-
-            var label = GetMonthName(selectedMonthFilter.Value);
-            if (!string.IsNullOrWhiteSpace(yearText))
-            {
-                label = $"{label} {yearText}";
-            }
-
-            return label;
-        }
-    }
-
-    private int SelectedMonthTransactionCount => selectedMonthFilter.HasValue ? transactions.Count : 0;
+    private static bool Contient(string? valeur, string texte)
+        => valeur != null && Fr.CompareInfo.IndexOf(valeur, texte, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
 
     private class RecapMensuel
     {
@@ -910,6 +836,7 @@
         public int Month { get; set; }
         public decimal TotalDepenses { get; set; }
         public decimal TotalGains { get; set; }
+        public int Count { get; set; }
     }
 }
 

@@ -15,225 +15,176 @@
 
 <PageTitle>Réservations</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <h2>Gestion des Réservations</h2>
-        <button class="btn btn-primary align-self-start align-self-lg-auto" @onclick="ShowAddReservationModal" disabled="@(!clients.Any())">
+<div class="container mt-4 rs-page">
+    <div class="rs-header">
+        <div>
+            <h2 class="rs-title">Réservations</h2>
+            <p class="rs-subtitle">@(isLoading ? "Chargement…" : $"{reservations.Count} réservation{(reservations.Count > 1 ? "s" : "")} · {upcomingReservations.Count} à venir")</p>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="ShowAddReservationModal" disabled="@(!clients.Any())">
             <i class="bi bi-calendar-plus" aria-hidden="true"></i> Nouvelle réservation
         </button>
     </div>
 
     @if (isLoading)
     {
-        <div class="skeleton-list">
-            @for (var i = 0; i < 3; i++)
+        <div class="rs-list rs-list--loading" aria-hidden="true">
+            @for (var i = 0; i < 6; i++)
             {
-                <div class="skeleton-card">
+                <div class="rs-skeleton-row">
                     <div class="skeleton-line w-40"></div>
                     <div class="skeleton-line w-60"></div>
-                    <div class="skeleton-line w-50"></div>
-                    <div class="skeleton-inline">
-                        <div class="skeleton-chip"></div>
-                        <div class="skeleton-chip"></div>
-                        <div class="skeleton-chip"></div>
-                    </div>
                 </div>
             }
         </div>
     }
     else
     {
-        <div class="row g-4 mb-4">
-            <div class="col-12 col-xl-4">
-                <div class="card reservation-summary-card">
-                    <div class="card-body">
-                        <span class="reservation-summary-label">Total réservations</span>
-                        <span class="reservation-summary-value">@reservations.Count</span>
-                        <span class="reservation-summary-sub">dont @upcomingReservations.Count à venir</span>
-                    </div>
+        <div class="rs-kpis">
+            <div class="rs-kpi">
+                <span class="rs-kpi-label">Réservations</span>
+                <span class="rs-kpi-value">@reservations.Count</span>
+                <span class="rs-kpi-sub">dont @upcomingReservations.Count à venir</span>
+            </div>
+            <div class="rs-kpi rs-kpi--income">
+                <span class="rs-kpi-label">Revenus estimés</span>
+                <span class="rs-kpi-value">@FormatCurrency(totalRevenue)</span>
+                <span class="rs-kpi-sub">@totalTransactions transaction@(totalTransactions > 1 ? "s" : "") associée@(totalTransactions > 1 ? "s" : "")</span>
+            </div>
+            <div class="rs-kpi">
+                <span class="rs-kpi-label">Durée cumulée</span>
+                <span class="rs-kpi-value">@FormatDays(totalDays)</span>
+                <span class="rs-kpi-sub">sur l'ensemble des réservations</span>
+            </div>
+        </div>
+
+        <div class="rs-toolbar">
+            <div class="rs-field">
+                <span class="rs-field-label" id="rs-view-label">Afficher</span>
+                <div class="rs-segmented" role="group" aria-labelledby="rs-view-label">
+                    <button type="button" class="@SegmentClass("avenir")" aria-pressed="@(view == "avenir")" @onclick='() => SetView("avenir")'>À venir <span class="rs-count">@upcomingReservations.Count</span></button>
+                    <button type="button" class="@SegmentClass("passees")" aria-pressed="@(view == "passees")" @onclick='() => SetView("passees")'>Passées <span class="rs-count">@pastReservations.Count</span></button>
+                    <button type="button" class="@SegmentClass("toutes")" aria-pressed="@(view == "toutes")" @onclick='() => SetView("toutes")'>Toutes <span class="rs-count">@reservations.Count</span></button>
                 </div>
             </div>
-            <div class="col-12 col-xl-4">
-                <div class="card reservation-summary-card">
-                    <div class="card-body">
-                        <span class="reservation-summary-label">Revenus estimés</span>
-                        <span class="reservation-summary-value text-success">@FormatCurrency(totalRevenue)</span>
-                        <span class="reservation-summary-sub">@totalTransactions transactions associées</span>
-                    </div>
-                </div>
+            <div class="rs-field">
+                <label for="reservations-statut" class="rs-field-label">Statut</label>
+                <select id="reservations-statut" class="form-select" value="@statusFilter" @onchange="OnStatusFilterChanged">
+                    <option value="">Tous les statuts</option>
+                    @foreach (var statut in reservationStatuses)
+                    {
+                        <option value="@statut">@statut</option>
+                    }
+                </select>
             </div>
-            <div class="col-12 col-xl-4">
-                <div class="card reservation-summary-card">
-                    <div class="card-body">
-                        <span class="reservation-summary-label">Durée cumulée</span>
-                        <span class="reservation-summary-value">@FormatDays(totalDays)</span>
-                        <span class="reservation-summary-sub">basé sur @reservations.Count réservation(s)</span>
-                    </div>
+            <div class="rs-field rs-field--grow">
+                <label for="reservations-recherche" class="rs-field-label">Rechercher</label>
+                <div class="rs-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input id="reservations-recherche" type="search" class="form-control" placeholder="Client, notes, voiture…"
+                           value="@searchText" @oninput="OnSearchInput" />
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
-            <div class="col-12 col-xl-6">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Réservations à venir</h5>
-                        <span class="badge bg-info">@upcomingReservations.Count</span>
-                    </div>
-                    <div class="card-body">
-                        @if (upcomingReservations.Any())
-                        {
-                            <div class="reservation-list">
-                                @foreach (var reservation in upcomingReservations)
-                                {
-                                    <div class="reservation-card" @onclick="() => ViewReservationClient(reservation.ClientId)">
-                                        <div class="reservation-card-header">
-                                            <div>
-                                                <span class="reservation-dates">
-                                                    @reservation.DateDebut.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
-                                                    -
-                                                    @reservation.DateFin.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
-                                                </span>
-                                                <h5 class="reservation-title">@reservation.Client.Nom @reservation.Client.Prenom</h5>
-                                                <span class="badge @GetStatusBadge(reservation.Statut)">@reservation.Statut</span>
-                                            </div>
-                                            <div class="reservation-card-right">
-                                                <div class="reservation-amount text-success">
-                                                    @FormatCurrency(CalculateAmount(reservation))
-                                                </div>
-                                                <div class="reservation-card-actions">
-                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @reservation.Client.Nom">
-                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @reservation.Client.Nom">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="reservation-card-body">
-                                            <div class="reservation-meta">
-                                                <span><i class="bi bi-clock-history me-1" aria-hidden="true"></i>@FormatDays(CalculateDuration(reservation))</span>
-                                                <span><i class="bi bi-receipt me-1" aria-hidden="true"></i>@reservation.Transactions.Count transaction(s)</span>
-                                            </div>
-                                            @if (!string.IsNullOrWhiteSpace(reservation.Notes))
-                                            {
-                                                <p class="reservation-notes">@reservation.Notes</p>
-                                            }
-                                            @if (reservation.Transactions.Any())
-                                            {
-                                                <div class="reservation-transactions">
-                                                    @foreach (var transaction in reservation.Transactions.OrderByDescending(t => t.Date).Take(3))
-                                                    {
-                                                        <span class="badge bg-secondary">
-                                                            @transaction.Date.ToString("dd/MM") - @FormatCurrency(transaction.Montant)
-                                                        </span>
-                                                    }
-                                                    @if (reservation.Transactions.Count > 3)
-                                                    {
-                                                        <span class="badge bg-secondary">+@((reservation.Transactions.Count) - 3)</span>
-                                                    }
-                                                </div>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="text-center text-muted py-5">
-                                <i class="bi bi-calendar-event display-6 mb-3" aria-hidden="true"></i>
-                                <p class="fw-semibold mb-1">Aucune réservation planifiée</p>
-                                <p class="mb-0">Créez une nouvelle réservation pour la voir ici.</p>
-                            </div>
-                        }
-                    </div>
-                </div>
+        @if (!reservations.Any())
+        {
+            <div class="rs-empty">
+                <i class="bi bi-calendar-event" aria-hidden="true"></i>
+                <p class="rs-empty-title">Aucune réservation</p>
+                <p>Créez une nouvelle réservation pour la voir ici.</p>
             </div>
-            <div class="col-12 col-xl-6">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Réservations passées</h5>
-                        <span class="badge bg-secondary">@pastReservations.Count</span>
-                    </div>
-                    <div class="card-body">
-                        @if (pastReservations.Any())
-                        {
-                            <div class="reservation-list">
-                                @foreach (var reservation in displayedPastReservations)
-                                {
-                                    <div class="reservation-card reservation-card--past" @onclick="() => ViewReservationClient(reservation.ClientId)">
-                                        <div class="reservation-card-header">
-                                            <div>
-                                                <span class="reservation-dates">
-                                                    @reservation.DateDebut.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
-                                                    -
-                                                    @reservation.DateFin.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))
-                                                </span>
-                                                <h5 class="reservation-title">@reservation.Client.Nom @reservation.Client.Prenom</h5>
-                                                <span class="badge @GetStatusBadge(reservation.Statut)">@reservation.Statut</span>
-                                            </div>
-                                            <div class="reservation-card-right">
-                                                <div class="reservation-amount text-info">
-                                                    @FormatCurrency(CalculateAmount(reservation))
-                                                </div>
-                                                <div class="reservation-card-actions">
-                                                    <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @reservation.Client.Nom">
-                                                        <i class="bi bi-pencil" aria-hidden="true"></i>
-                                                    </button>
-                                                    <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @reservation.Client.Nom">
-                                                        <i class="bi bi-trash" aria-hidden="true"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="reservation-card-body">
-                                            <div class="reservation-meta">
-                                                <span><i class="bi bi-clock-history me-1" aria-hidden="true"></i>@FormatDays(CalculateDuration(reservation))</span>
-                                                <span><i class="bi bi-receipt me-1" aria-hidden="true"></i>@reservation.Transactions.Count transaction(s)</span>
-                                            </div>
-                                            @if (!string.IsNullOrWhiteSpace(reservation.Notes))
-                                            {
-                                                <p class="reservation-notes">@reservation.Notes</p>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                            
-                            @if (totalPages > 1)
+        }
+        else if (!filteredReservations.Any())
+        {
+            <div class="rs-empty">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <p class="rs-empty-title">Aucun résultat</p>
+                <p>Aucune réservation ne correspond à ces filtres.</p>
+            </div>
+        }
+        else
+        {
+            <div class="rs-list">
+                <div class="rs-table-wrap">
+                    <table class="rs-table">
+                        <caption class="visually-hidden">Liste des réservations</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Période</th>
+                                <th scope="col">Client</th>
+                                <th scope="col" class="rs-col-wide">Statut</th>
+                                <th scope="col" class="rs-col-wide rs-col-amount">Montant</th>
+                                <th scope="col" class="rs-col-actions"><span class="visually-hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reservation in displayedReservations)
                             {
-                                <div class="d-flex justify-content-between align-items-center mt-4">
-                                    <div>
-                                        <span class="text-muted">Page @currentPage sur @totalPages (@pastReservations.Count réservation(s) passée(s))</span>
-                                    </div>
-                                    <div class="d-flex gap-2 align-items-center">
-                                        <label for="reservations-champ-1" class="form-label mb-0">Page :</label>
-                                        <select id="reservations-champ-1" class="form-select form-select-sm select-auto" aria-label="Page"
-                                                @onchange="OnPageChanged"
-                                                value="@currentPage">
-                                            @for (int i = 1; i <= totalPages; i++)
-                                            {
-                                                <option value="@i">Page @i</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
+                                var voituresResa = ReservationCars(reservation);
+                                <tr class="@RowClass(reservation)" @onclick="() => ViewReservationClient(reservation.ClientId)">
+                                    <td class="rs-col-period">
+                                        <span class="rs-dates">@FormatPeriod(reservation)</span>
+                                        <span class="rs-when">@RelativeLabel(reservation)<span class="rs-sep" aria-hidden="true">·</span>@FormatDays(CalculateDuration(reservation))</span>
+                                    </td>
+                                    <td class="rs-col-client">
+                                        <a class="rs-name" href="/clients/@reservation.ClientId" @onclick:stopPropagation="true">@reservation.Client.Nom @reservation.Client.Prenom</a>
+                                        @if (!string.IsNullOrWhiteSpace(reservation.Notes))
+                                        {
+                                            <span class="rs-notes" title="@reservation.Notes">@reservation.Notes</span>
+                                        }
+                                        @if (voituresResa.Any())
+                                        {
+                                            <span class="rs-tags">
+                                                @foreach (var nomVoiture in voituresResa)
+                                                {
+                                                    <span class="rs-tag"><i class="bi bi-car-front-fill" aria-hidden="true"></i>@nomVoiture</span>
+                                                }
+                                            </span>
+                                        }
+                                        <span class="rs-inline-meta">
+                                            <span class="rs-status @StatusClass(reservation.Statut)">@reservation.Statut</span>
+                                            <span class="rs-amount">@FormatCurrency(CalculateAmount(reservation))</span>
+                                        </span>
+                                    </td>
+                                    <td class="rs-col-wide">
+                                        <span class="rs-status @StatusClass(reservation.Statut)">@reservation.Statut</span>
+                                    </td>
+                                    <td class="rs-col-wide rs-col-amount">
+                                        <span class="rs-amount">@FormatCurrency(CalculateAmount(reservation))</span>
+                                        <small class="rs-count-tx" title="@TransactionsSummary(reservation)">@reservation.Transactions.Count transaction@(reservation.Transactions.Count > 1 ? "s" : "")</small>
+                                    </td>
+                                    <td class="rs-col-actions">
+                                        <button type="button" class="btn btn-icon btn-outline-primary" @onclick="async () => await OnEditReservation(reservation)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier la réservation de @reservation.Client.Nom">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-icon btn-outline-danger" @onclick="async () => await OnDeleteReservation(reservation)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer la réservation de @reservation.Client.Nom">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                             }
-                        }
-                        else
-                        {
-                            <div class="text-center text-muted py-5">
-                                <i class="bi bi-archive display-6 mb-3" aria-hidden="true"></i>
-                                <p class="fw-semibold mb-1">Aucune réservation passée</p>
-                                <p class="mb-0">Les réservations terminées apparaîtront ici.</p>
-                            </div>
-                        }
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
+
+                @if (totalPages > 1)
+                {
+                    <nav class="rs-pager" aria-label="Pagination des réservations">
+                        <span class="rs-pager-info">@RangeLabel</span>
+                        <div class="rs-pager-buttons">
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="PreviousPage" disabled="@(currentPage <= 1)" aria-label="Page précédente">
+                                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                            </button>
+                            <span class="rs-pager-page">Page @currentPage / @totalPages</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @onclick="NextPage" disabled="@(currentPage >= totalPages)" aria-label="Page suivante">
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </nav>
+                }
             </div>
-        </div>
+        }
     }
 </div>
 
@@ -352,14 +303,19 @@
     private List<Reservation> reservations = new();
     private List<Reservation> upcomingReservations = new();
     private List<Reservation> pastReservations = new();
-    private List<Reservation> displayedPastReservations = new();
+    private List<Reservation> filteredReservations = new();
+    private List<Reservation> displayedReservations = new();
     private List<Client> clients = new();
     private bool isLoading = true;
     private decimal totalRevenue;
     private int totalTransactions;
     private decimal totalDays;
     private int currentPage = 1;
-    private int itemsPerPage = 3;
+    private const int ItemsPerPage = 12;
+    private string view = "avenir";
+    private bool viewInitialized;
+    private string statusFilter = string.Empty;
+    private string searchText = string.Empty;
     private int totalPages = 1;
     private bool showReservationModal;
     private bool isSavingReservation;
@@ -444,42 +400,164 @@
             .OrderByDescending(r => r.DateDebut)
             .ToList();
 
-        UpdateDisplayedPastReservations();
+        if (!viewInitialized)
+        {
+            view = upcomingReservations.Any() ? "avenir" : "toutes";
+            viewInitialized = true;
+        }
+
+        UpdateDisplayed();
 
         totalRevenue = reservations.Sum(r => CalculateAmount(r));
         totalTransactions = reservations.Sum(r => r.Transactions.Count);
         totalDays = reservations.Sum(r => CalculateDuration(r));
     }
     
-    private void UpdateDisplayedPastReservations()
+    private void UpdateDisplayed()
     {
-        totalPages = (int)Math.Ceiling((double)pastReservations.Count / itemsPerPage);
-        if (currentPage > totalPages && totalPages > 0)
+        IEnumerable<Reservation> resultat = view switch
         {
-            currentPage = totalPages;
-        }
-        if (currentPage < 1)
+            "avenir" => upcomingReservations,
+            "passees" => pastReservations,
+            _ => reservations
+        };
+
+        if (!string.IsNullOrEmpty(statusFilter))
         {
-            currentPage = 1;
+            resultat = resultat.Where(r => r.Statut == statusFilter);
         }
-        
-        var skip = (currentPage - 1) * itemsPerPage;
-        displayedPastReservations = pastReservations.Skip(skip).Take(itemsPerPage).ToList();
+
+        var texte = searchText.Trim();
+        if (texte.Length > 0)
+        {
+            resultat = resultat.Where(r =>
+                Contient(r.Client?.Nom, texte) || Contient(r.Client?.Prenom, texte) || Contient(r.Notes, texte) ||
+                Contient(r.Statut, texte) || ReservationCars(r).Any(v => Contient(v, texte)));
+        }
+
+        // À venir : la plus proche d'abord ; sinon la plus récente d'abord
+        filteredReservations = (view == "avenir"
+                ? resultat.OrderBy(r => r.DateDebut)
+                : resultat.OrderByDescending(r => r.DateDebut))
+            .ThenBy(r => r.Id)
+            .ToList();
+
+        totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredReservations.Count / ItemsPerPage));
+        currentPage = Math.Clamp(currentPage, 1, totalPages);
+        displayedReservations = filteredReservations.Skip((currentPage - 1) * ItemsPerPage).Take(ItemsPerPage).ToList();
     }
-    
-    private void GoToPage(int page)
+
+    private void SetView(string value)
     {
-        currentPage = page;
-        UpdateDisplayedPastReservations();
+        view = value;
+        currentPage = 1;
+        UpdateDisplayed();
     }
-    
-    private void OnPageChanged(ChangeEventArgs e)
+
+    private void OnStatusFilterChanged(ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out int page))
+        statusFilter = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
+        UpdateDisplayed();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchText = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
+        UpdateDisplayed();
+    }
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages)
         {
-            GoToPage(page);
+            currentPage++;
+            UpdateDisplayed();
         }
     }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            UpdateDisplayed();
+        }
+    }
+
+    private string SegmentClass(string value) => view == value ? "rs-segment is-active" : "rs-segment";
+
+    private static readonly CultureInfo Fr = CultureInfo.GetCultureInfo("fr-FR");
+
+    private static bool Contient(string? valeur, string texte)
+        => valeur != null && Fr.CompareInfo.IndexOf(valeur, texte, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0;
+
+    private string RangeLabel
+    {
+        get
+        {
+            var debut = (currentPage - 1) * ItemsPerPage + 1;
+            var fin = Math.Min(currentPage * ItemsPerPage, filteredReservations.Count);
+            return $"{debut}–{fin} sur {filteredReservations.Count} réservation{(filteredReservations.Count > 1 ? "s" : "")}";
+        }
+    }
+
+    private static string FormatPeriod(Reservation reservation)
+    {
+        var debut = reservation.DateDebut;
+        var fin = reservation.DateFin;
+        if (debut.Date == fin.Date)
+        {
+            return debut.ToString("dd MMM yyyy", Fr);
+        }
+
+        return debut.Year == fin.Year
+            ? $"{debut.ToString("dd MMM", Fr)} → {fin.ToString("dd MMM yyyy", Fr)}"
+            : $"{debut.ToString("dd MMM yyyy", Fr)} → {fin.ToString("dd MMM yyyy", Fr)}";
+    }
+
+    private static string RelativeLabel(Reservation reservation)
+    {
+        var today = DateTime.Today;
+        if (reservation.DateDebut.Date <= today && reservation.DateFin.Date >= today)
+        {
+            return "En ce moment";
+        }
+
+        if (reservation.DateDebut.Date > today)
+        {
+            var jours = (reservation.DateDebut.Date - today).Days;
+            return jours == 1 ? "Demain" : jours < 60 ? $"Dans {jours} jours" : $"Dans {jours / 30} mois";
+        }
+
+        var ecoule = (today - reservation.DateFin.Date).Days;
+        return ecoule == 1 ? "Hier"
+            : ecoule < 60 ? $"Il y a {ecoule} jours"
+            : ecoule < 730 ? $"Il y a {ecoule / 30} mois"
+            : $"Il y a {ecoule / 365} ans";
+    }
+
+    private static string RowClass(Reservation reservation)
+    {
+        var today = DateTime.Today;
+        if (reservation.DateDebut.Date <= today && reservation.DateFin.Date >= today) return "is-current";
+        return reservation.DateFin.Date < today ? "is-past" : "is-upcoming";
+    }
+
+    private static IReadOnlyList<string> ReservationCars(Reservation reservation)
+        => reservation.Transactions
+            .Select(t => t.Voiture?.Nom)
+            .Where(nom => !string.IsNullOrWhiteSpace(nom))
+            .Select(nom => nom!)
+            .Distinct()
+            .ToList();
+
+    private string TransactionsSummary(Reservation reservation)
+        => string.Join(" | ", reservation.Transactions
+            .OrderByDescending(t => t.Date)
+            .Take(8)
+            .Select(t => $"{t.Date:dd/MM} {FormatCurrency(t.Montant)}"));
 
     private decimal CalculateAmount(Reservation reservation)
         => reservation.Transactions.Sum(t => t.Montant);
@@ -767,16 +845,13 @@
         StateHasChanged();
     }
 
-    private string GetStatusBadge(string statut)
+    private static string StatusClass(string statut) => statut switch
     {
-        return statut switch
-        {
-            "Confirmée" or "Validée" or "Terminée" => "bg-success",
-            "Annulée" or "Refusée" => "bg-danger",
-            "En cours" => "bg-warning text-dark",
-            _ => "bg-secondary"
-        };
-    }
+        "Confirmée" or "Validée" or "Terminée" => "rs-status--ok",
+        "Annulée" or "Refusée" => "rs-status--ko",
+        "En cours" => "rs-status--now",
+        _ => "rs-status--wait"
+    };
 
     private string FormatCurrency(decimal value)
         => string.Format(CultureInfo.GetCultureInfo("fr-FR"), "{0:N2} €", value);

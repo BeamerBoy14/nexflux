@@ -2,47 +2,52 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column" aria-label="Navigation principale">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill me-2" aria-hidden="true"></span> ACCUEIL
+        <span class="nav-section" aria-hidden="true">Pilotage</span>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="Accueil">
+                <span class="bi bi-house-door-fill" aria-hidden="true"></span><span class="nav-text">Accueil</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="transactions">
-                <span class="bi bi-cash-stack me-2" aria-hidden="true"></span> TRANSACTIONS
+        <div class="nav-item">
+            <NavLink class="nav-link" href="graphiques" title="Graphiques">
+                <span class="bi bi-graph-up-arrow" aria-hidden="true"></span><span class="nav-text">Graphiques</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="clients">
-                <span class="bi bi-people-fill me-2" aria-hidden="true"></span> CLIENTS
+        <span class="nav-section" aria-hidden="true">Activité</span>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="transactions" title="Transactions">
+                <span class="bi bi-cash-stack" aria-hidden="true"></span><span class="nav-text">Transactions</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reservations">
-                <span class="bi bi-calendar-check-fill me-2" aria-hidden="true"></span> RÉSERVATIONS
+        <div class="nav-item">
+            <NavLink class="nav-link" href="reservations" title="Réservations">
+                <span class="bi bi-calendar-check-fill" aria-hidden="true"></span><span class="nav-text">Réservations</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="postes">
-                <span class="bi bi-folder-fill me-2" aria-hidden="true"></span> POSTES
+        <span class="nav-section" aria-hidden="true">Gestion</span>
+
+        <div class="nav-item">
+            <NavLink class="nav-link" href="clients" title="Clients">
+                <span class="bi bi-people-fill" aria-hidden="true"></span><span class="nav-text">Clients</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="voitures">
-                <span class="bi bi-car-front-fill me-2" aria-hidden="true"></span> VOITURES
+        <div class="nav-item">
+            <NavLink class="nav-link" href="voitures" title="Voitures">
+                <span class="bi bi-car-front-fill" aria-hidden="true"></span><span class="nav-text">Voitures</span>
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="graphiques">
-                <span class="bi bi-graph-up-arrow me-2" aria-hidden="true"></span> GRAPHIQUES
+        <div class="nav-item">
+            <NavLink class="nav-link" href="postes" title="Postes">
+                <span class="bi bi-folder-fill" aria-hidden="true"></span><span class="nav-text">Postes</span>
             </NavLink>
         </div>
     </nav>
 </div>
-

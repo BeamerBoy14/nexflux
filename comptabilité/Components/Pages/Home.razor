@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using comptabilité.Data
+@using comptabilité.Models
 @using comptabilité.Services
 @using Microsoft.EntityFrameworkCore
 @using System.Globalization
@@ -17,165 +18,159 @@
 }
 else
 {
-<div class="hero-section">
-    <div class="container">
-        <div class="hero-content">
-            <h1 class="hero-title">
-                <span class="gradient-text">NEX</span><span class="gradient-text-accent">FLUX</span>
-            </h1>
-            <p class="hero-subtitle">Votre solution complète de gestion financière et comptable</p>
-            <p class="hero-description">
-                Simplifiez la gestion de vos transactions, suivez vos dépenses et gains en temps réel,
-                et prenez des décisions éclairées grâce à des analyses visuelles détaillées.
-            </p>
+<div class="container mt-4 hm-page">
+    <div class="hm-header">
+        <div>
+            <p class="hm-eyebrow">@DateDuJour</p>
+            <h2 class="hm-title">Ici l'environnement <span class="gradient-text">@NomAffiche</span></h2>
+            <p class="hm-subtitle">Voici l'état de votre activité.</p>
         </div>
-    </div>
-</div>
-
-<div class="container mt-5">
-    <div class="stats-section">
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-cash-stack" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-value">@totalTransactions</div>
-                    <div class="stat-label">Transactions</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-people" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-value">@totalClients</div>
-                    <div class="stat-label">Clients</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-arrow-down-circle text-danger" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-value text-danger">@totalDepenses.ToString("N2") €</div>
-                    <div class="stat-label">Total Dépenses</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-arrow-up-circle text-success" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-value text-success">@totalGains.ToString("N2") €</div>
-                    <div class="stat-label">Total Gains</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-calendar-month text-danger" aria-hidden="true"></i>
-                    </div>
-                    <div class="stat-value text-danger">-@coutMoyenMensuel.ToString("N2") €</div>
-                    <div class="stat-label">Coût Moyen Mensuel</div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="bi bi-percent @(pourcentageDernierMois >= 100 ? "text-danger" : "text-success")"></i>
-                    </div>
-                    <div class="stat-value @(pourcentageDernierMois >= 100 ? "text-danger" : "text-success")">@pourcentageDernierMois.ToString("N1")%</div>
-                    <div class="stat-label">@(dernierMoisAnnee != null ? $"{dernierMoisAnnee} / Moyenne" : "Dernier Mois / Moyenne")</div>
-                </div>
-            </div>
+        <div class="hm-actions">
+            <a href="/transactions" class="btn btn-primary"><i class="bi bi-cash-stack" aria-hidden="true"></i> Transactions</a>
+            <a href="/reservations" class="btn btn-outline-primary"><i class="bi bi-calendar-check" aria-hidden="true"></i> Réservations</a>
         </div>
     </div>
 
-    <div class="features-section mt-5">
-        <h2 class="section-title">Fonctionnalités principales</h2>
-        <div class="row g-4 mt-3">
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-receipt-cutoff" aria-hidden="true"></i>
-                    </div>
-                    <h3>Gestion des Transactions</h3>
-                    <p>Enregistrez et suivez toutes vos dépenses et gains avec une interface intuitive et rapide.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-graph-up-arrow" aria-hidden="true"></i>
-                    </div>
-                    <h3>Analyses Visuelles</h3>
-                    <p>Visualisez vos données financières avec des graphiques interactifs et des rapports détaillés.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="bi bi-person-badge" aria-hidden="true"></i>
-                    </div>
-                    <h3>Gestion Clients</h3>
-                    <p>Gérez votre portefeuille clients et suivez les transactions associées à chaque client.</p>
-                </div>
-            </div>
+    <!-- Synthèse -->
+    <div class="hm-kpis">
+        <div class="hm-kpi hm-kpi--expense">
+            <span class="hm-kpi-label">Dépenses</span>
+            <span class="hm-kpi-value">@SignedMontant(totalDepenses, '-')</span>
+            <span class="hm-kpi-sub">@totalTransactions transaction@(totalTransactions > 1 ? "s" : "") au total</span>
+        </div>
+        <div class="hm-kpi hm-kpi--income">
+            <span class="hm-kpi-label">Gains</span>
+            <span class="hm-kpi-value">@SignedMontant(totalGains, '+')</span>
+            <span class="hm-kpi-sub">@totalClients client@(totalClients > 1 ? "s" : "") enregistré@(totalClients > 1 ? "s" : "")</span>
+        </div>
+        <div class="hm-kpi @(Solde >= 0 ? "hm-kpi--income" : "hm-kpi--expense")">
+            <span class="hm-kpi-label">Solde net</span>
+            <span class="hm-kpi-value">@SignedMontant(Math.Abs(Solde), Solde >= 0 ? '+' : '-')</span>
+            <span class="hm-kpi-sub">gains − dépenses</span>
+        </div>
+        <div class="hm-kpi">
+            <span class="hm-kpi-label">Coût moyen mensuel</span>
+            <span class="hm-kpi-value hm-kpi-value--plain">@FormatMontant(coutMoyenMensuel)</span>
+            <span class="hm-kpi-sub @(pourcentageDernierMois >= 100 ? "hm-over" : "hm-under")">
+                @(dernierMoisAnnee != null ? $"{dernierMoisAnnee} : {pourcentageDernierMois.ToString("0", Fr)} % de la moyenne" : "Pas encore de dépense")
+            </span>
         </div>
     </div>
 
-    <div class="quick-actions mt-5">
-        <h2 class="section-title">Accès rapide</h2>
-        <div class="row g-3 mt-3">
-            <div class="col-md-6">
-                <a href="/transactions" class="quick-action-card">
-                    <div class="quick-action-icon">
-                        <i class="bi bi-cash-stack" aria-hidden="true"></i>
+    <div class="hm-grid">
+        <div class="hm-col">
+            <!-- 12 derniers mois -->
+            <section class="hm-card" aria-labelledby="hm-chart-title">
+                <div class="hm-card-head">
+                    <h3 id="hm-chart-title" class="hm-card-title">12 derniers mois</h3>
+                    <div class="hm-legend" aria-hidden="true">
+                        <span><i class="hm-dot hm-dot--expense"></i>Dépenses</span>
+                        <span><i class="hm-dot hm-dot--income"></i>Gains</span>
                     </div>
-                    <div class="quick-action-content">
-                        <h4>Transactions</h4>
-                        <p>Gérer vos dépenses et gains</p>
-                    </div>
-                    <i class="bi bi-arrow-right quick-action-arrow" aria-hidden="true"></i>
-                </a>
-            </div>
-            <div class="col-md-6">
-                <a href="/graphiques" class="quick-action-card">
-                    <div class="quick-action-icon">
-                        <i class="bi bi-graph-up" aria-hidden="true"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <h4>Graphiques</h4>
-                        <p>Visualiser vos données financières</p>
-                    </div>
-                    <i class="bi bi-arrow-right quick-action-arrow" aria-hidden="true"></i>
-                </a>
-            </div>
-            <div class="col-md-6">
-                <a href="/clients" class="quick-action-card">
-                    <div class="quick-action-icon">
-                        <i class="bi bi-people" aria-hidden="true"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <h4>Clients</h4>
-                        <p>Gérer votre portefeuille clients</p>
-                    </div>
-                    <i class="bi bi-arrow-right quick-action-arrow" aria-hidden="true"></i>
-                </a>
-            </div>
-            <div class="col-md-6">
-                <a href="/postes" class="quick-action-card">
-                    <div class="quick-action-icon">
-                        <i class="bi bi-folder" aria-hidden="true"></i>
-                    </div>
-                    <div class="quick-action-content">
-                        <h4>Postes de Dépense</h4>
-                        <p>Organiser vos catégories de dépenses</p>
-                    </div>
-                    <i class="bi bi-arrow-right quick-action-arrow" aria-hidden="true"></i>
-                </a>
-            </div>
+                </div>
+                <ul class="hm-months" role="list">
+                    @foreach (var mois in serie)
+                    {
+                        <li class="hm-month @(mois.EstCourant ? "is-current" : "")"
+                            title="@mois.Label : @FormatMontant(mois.Depenses) de dépenses, @FormatMontant(mois.Gains) de gains"
+                            aria-label="@mois.Label : @FormatMontant(mois.Depenses) de dépenses, @FormatMontant(mois.Gains) de gains">
+                            <span class="hm-bars" aria-hidden="true">
+                                <span class="hm-bar hm-bar--expense" style="height:@BarHeight(mois.Depenses)%"></span>
+                                <span class="hm-bar hm-bar--income" style="height:@BarHeight(mois.Gains)%"></span>
+                            </span>
+                            <span class="hm-month-label" aria-hidden="true">@mois.Court</span>
+                        </li>
+                    }
+                </ul>
+                <div class="hm-month-summary">
+                    <span>Ce mois-ci</span>
+                    <strong class="hm-down">@SignedMontant(moisCourant.Depenses, '-')</strong>
+                    <strong class="hm-up">@SignedMontant(moisCourant.Gains, '+')</strong>
+                </div>
+            </section>
+
+            <!-- Dernières transactions -->
+            <section class="hm-card" aria-labelledby="hm-last-title">
+                <div class="hm-card-head">
+                    <h3 id="hm-last-title" class="hm-card-title">Dernières transactions</h3>
+                    <a href="/transactions" class="hm-link">Tout voir <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                </div>
+                @if (dernieres.Any())
+                {
+                    <ul class="hm-list">
+                        @foreach (var t in dernieres)
+                        {
+                            var depense = t.Type == "Dépense";
+                            <li class="hm-row">
+                                <span class="hm-row-date">
+                                    <strong>@t.Date.ToString("dd", Fr)</strong>
+                                    <small>@t.Date.ToString("MMM", Fr)</small>
+                                </span>
+                                <span class="hm-row-main">
+                                    <span class="hm-row-title">@(string.IsNullOrWhiteSpace(t.Libelle) ? "Sans libellé" : t.Libelle)</span>
+                                    <span class="hm-row-sub">
+                                        @if (t.Poste != null) { <span class="hm-tag">@t.Poste.Nom</span> }
+                                        @if (t.Voiture != null) { <span class="hm-tag hm-tag--car">@t.Voiture.Nom</span> }
+                                    </span>
+                                </span>
+                                <span class="hm-row-amount @(depense ? "hm-down" : "hm-up")">@(depense ? "-" : "+")@FormatMontant(Math.Abs(t.Montant))</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="hm-empty">Aucune transaction pour le moment.</p>
+                }
+            </section>
+        </div>
+
+        <div class="hm-col">
+            <!-- Prochaines réservations -->
+            <section class="hm-card" aria-labelledby="hm-resa-title">
+                <div class="hm-card-head">
+                    <h3 id="hm-resa-title" class="hm-card-title">Prochaines réservations</h3>
+                    <a href="/reservations" class="hm-link">Tout voir <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                </div>
+                @if (prochaines.Any())
+                {
+                    <ul class="hm-list">
+                        @foreach (var r in prochaines)
+                        {
+                            <li class="hm-row">
+                                <span class="hm-row-date">
+                                    <strong>@r.DateDebut.ToString("dd", Fr)</strong>
+                                    <small>@r.DateDebut.ToString("MMM", Fr)</small>
+                                </span>
+                                <span class="hm-row-main">
+                                    <a class="hm-row-title hm-row-link" href="/clients/@r.ClientId">@r.Client.Nom @r.Client.Prenom</a>
+                                    <span class="hm-row-sub">@RelativeLabel(r) · @DureeJours(r)</span>
+                                </span>
+                                <span class="rs-status @StatusClass(r.Statut)">@r.Statut</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="hm-empty">Aucune réservation à venir.</p>
+                }
+            </section>
+
+            <!-- Accès rapide -->
+            <section class="hm-card" aria-labelledby="hm-quick-title">
+                <div class="hm-card-head">
+                    <h3 id="hm-quick-title" class="hm-card-title">Accès rapide</h3>
+                </div>
+                <div class="hm-tiles">
+                    <a href="/clients" class="hm-tile"><i class="bi bi-people" aria-hidden="true"></i><span>Clients</span><small>@totalClients</small></a>
+                    <a href="/voitures" class="hm-tile"><i class="bi bi-car-front" aria-hidden="true"></i><span>Voitures</span><small>@totalVoitures</small></a>
+                    <a href="/postes" class="hm-tile"><i class="bi bi-folder" aria-hidden="true"></i><span>Postes</span><small>@totalPostes</small></a>
+                    <a href="/reservations" class="hm-tile"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Réservations</span><small>@totalAVenir à venir</small></a>
+                    <a href="/graphiques" class="hm-tile"><i class="bi bi-graph-up" aria-hidden="true"></i><span>Graphiques</span><small>Analyses</small></a>
+                    <a href="/transactions" class="hm-tile"><i class="bi bi-cash-stack" aria-hidden="true"></i><span>Transactions</span><small>@totalTransactions</small></a>
+                </div>
+            </section>
         </div>
     </div>
 </div>
@@ -189,6 +184,126 @@ else
     private decimal coutMoyenMensuel = 0;
     private decimal pourcentageDernierMois = 0;
     private string? dernierMoisAnnee;
+
+    private sealed record MoisSerie(DateTime Mois, decimal Depenses, decimal Gains, bool EstCourant)
+    {
+        public string Label => Mois.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
+        public string Court => Mois.ToString("MMM", CultureInfo.GetCultureInfo("fr-FR")).TrimEnd('.');
+    }
+
+    private static readonly CultureInfo Fr = CultureInfo.GetCultureInfo("fr-FR");
+
+    private List<MoisSerie> serie = new();
+    private MoisSerie moisCourant = new(DateTime.Today, 0m, 0m, true);
+    private List<Transaction> dernieres = new();
+    private List<Reservation> prochaines = new();
+    private int totalVoitures;
+    private int totalPostes;
+    private int totalAVenir;
+    private decimal maxSerie = 1m;
+
+    private decimal Solde => totalGains - totalDepenses;
+
+    // Nom de l'entreprise (nom complet du compte), à défaut l'identifiant de connexion
+    private string? nomEntreprise;
+
+    private string NomAffiche =>
+        !string.IsNullOrWhiteSpace(nomEntreprise) ? nomEntreprise!
+        : string.IsNullOrWhiteSpace(AuthService.GetUtilisateurNom()) ? "votre entreprise"
+        : AuthService.GetUtilisateurNom()!;
+
+    private string DateDuJour
+    {
+        get
+        {
+            var texte = DateTime.Today.ToString("dddd d MMMM yyyy", Fr);
+            return char.ToUpper(texte[0]) + texte.Substring(1);
+        }
+    }
+
+    private static string FormatMontant(decimal montant) => $"{montant.ToString("N2", Fr)} €";
+
+    private static string SignedMontant(decimal montant, char signe) => montant == 0 ? FormatMontant(0) : signe + FormatMontant(montant);
+
+    private string BarHeight(decimal montant)
+        => montant <= 0 ? "2" : Math.Round(Math.Max(3m, montant / maxSerie * 100m), 1).ToString(CultureInfo.InvariantCulture);
+
+    private static string StatusClass(string statut) => statut switch
+    {
+        "Confirmée" or "Validée" or "Terminée" => "rs-status--ok",
+        "Annulée" or "Refusée" => "rs-status--ko",
+        "En cours" => "rs-status--now",
+        _ => "rs-status--wait"
+    };
+
+    private static string RelativeLabel(Reservation reservation)
+    {
+        var today = DateTime.Today;
+        if (reservation.DateDebut.Date <= today && reservation.DateFin.Date >= today)
+        {
+            return "En ce moment";
+        }
+
+        var jours = (reservation.DateDebut.Date - today).Days;
+        return jours == 1 ? "Demain" : jours < 60 ? $"Dans {jours} jours" : $"Dans {jours / 30} mois";
+    }
+
+    private static string DureeJours(Reservation reservation)
+    {
+        var jours = (reservation.DateFin.Date - reservation.DateDebut.Date).Days + 1;
+        return jours <= 1 ? "1 jour" : $"{jours} jours";
+    }
+
+    private async Task LoadDashboard(ComptabiliteDbContext db, int userId)
+    {
+        var today = DateTime.Today;
+        var debutSerie = new DateTime(today.Year, today.Month, 1).AddMonths(-11);
+
+        nomEntreprise = await db.Utilisateurs
+            .Where(u => u.Id == userId)
+            .Select(u => u.NomComplet)
+            .FirstOrDefaultAsync();
+
+        var mouvements = await db.Transactions
+            .Where(t => t.UtilisateurId == userId && t.Date >= debutSerie)
+            .Select(t => new { t.Date, t.Montant, t.Type })
+            .ToListAsync();
+
+        serie = Enumerable.Range(0, 12)
+            .Select(i =>
+            {
+                var mois = debutSerie.AddMonths(i);
+                var duMois = mouvements.Where(m => m.Date.Year == mois.Year && m.Date.Month == mois.Month).ToList();
+                return new MoisSerie(
+                    mois,
+                    duMois.Where(m => m.Type == "Dépense").Sum(m => m.Montant),
+                    duMois.Where(m => m.Type == "Gain").Sum(m => m.Montant),
+                    mois.Year == today.Year && mois.Month == today.Month);
+            })
+            .ToList();
+        moisCourant = serie.Last();
+        maxSerie = Math.Max(1m, serie.Max(m => Math.Max(m.Depenses, m.Gains)));
+
+        dernieres = await db.Transactions
+            .Where(t => t.UtilisateurId == userId)
+            .Include(t => t.Poste)
+            .Include(t => t.Voiture)
+            .OrderByDescending(t => t.Date)
+            .ThenByDescending(t => t.Id)
+            .Take(6)
+            .ToListAsync();
+
+        prochaines = await db.Reservations
+            .Where(r => r.UtilisateurId == userId && r.DateFin >= today)
+            .Include(r => r.Client)
+            .OrderBy(r => r.DateDebut)
+            .Take(4)
+            .ToListAsync();
+
+        totalAVenir = await db.Reservations.CountAsync(r => r.UtilisateurId == userId && r.DateFin >= today);
+        totalVoitures = await db.Voitures.CountAsync(v => v.UtilisateurId == userId);
+        totalPostes = await db.Postes.CountAsync(p => p.UtilisateurId == userId);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,5 +385,7 @@ else
                 dernierMoisAnnee = char.ToUpper(dernierMoisAnnee[0]) + dernierMoisAnnee.Substring(1);
             }
         }
+
+        await LoadDashboard(db, userId.Value);
     }
 }

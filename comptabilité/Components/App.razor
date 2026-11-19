@@ -19,18 +19,51 @@
     <link rel="stylesheet" href="css/clients.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/reservations.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/voitures.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/postes.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/graphiques.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/widgets.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/text-controls.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/layout.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/home.css?v=@AssetVersion" />
     <link rel="stylesheet" href="NexFlux.styles.css?v=@AssetVersion" />
     <link rel="stylesheet" href="css/accessibility.css?v=@AssetVersion" />
+    <link rel="stylesheet" href="css/reconnect.css?v=@AssetVersion" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2" />
     <link rel="icon" type="image/png" sizes="64x64" href="favicon.png?v=2" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2" />
     <meta name="theme-color" content="#000011" />
     <HeadOutlet />
     <script>
+        // Menu latéral réduit ou développé : mémorisé dans le navigateur, appliqué avant l'affichage
+        (function () {
+            var cle = 'nx-sidebar';
+            try {
+                if (localStorage.getItem(cle) === 'collapsed') {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch (e) { }
+
+            function synchroniser() {
+                var reduit = document.documentElement.classList.contains('sidebar-collapsed');
+                document.querySelectorAll('.sidebar-collapse').forEach(function (bouton) {
+                    var libelle = reduit ? 'Développer le menu' : 'Réduire le menu';
+                    bouton.setAttribute('aria-pressed', reduit ? 'true' : 'false');
+                    bouton.setAttribute('aria-label', libelle);
+                    bouton.title = libelle;
+                    var texte = bouton.querySelector('.nav-text');
+                    if (texte) texte.textContent = libelle;
+                });
+            }
+
+            window.nxToggleSidebar = function () {
+                var reduit = document.documentElement.classList.toggle('sidebar-collapsed');
+                try { localStorage.setItem(cle, reduit ? 'collapsed' : 'expanded'); } catch (e) { }
+                synchroniser();
+            };
+
+            document.addEventListener('DOMContentLoaded', synchroniser);
+        })();
+
         // Écran de chargement : défini dans le <head> pour n'être exécuté
         // qu'aux chargements complets de page (pas lors des navigations SPA).
         window.__showSplash = function (text) {
@@ -57,6 +90,42 @@
 
 <body class="bg-dark text-light">
     <Routes />
+
+    <div id="components-reconnect-modal" class="nx-reconnect" role="alertdialog" aria-modal="true" aria-label="État de la connexion au serveur">
+        <div class="nx-reconnect__panel">
+            <img class="nx-reconnect__logo" src="favicon.svg?v=@AssetVersion" alt="" />
+
+            <div class="nx-reconnect__state nx-reconnect__state--show">
+                <div class="app-loading__spinner nx-reconnect__spinner" aria-hidden="true"></div>
+                <h2 class="nx-reconnect__title">Connexion interrompue</h2>
+                <p class="nx-reconnect__text">
+                    Reconnexion en cours&hellip; tentative <span id="components-reconnect-current-attempt"></span>
+                    sur <span id="components-reconnect-max-retries"></span>
+                </p>
+            </div>
+
+            <div class="nx-reconnect__state nx-reconnect__state--failed">
+                <h2 class="nx-reconnect__title">Serveur injoignable</h2>
+                <p class="nx-reconnect__text">Impossible de rétablir la connexion. Vérifiez votre réseau, puis réessayez.</p>
+                <div class="nx-reconnect__actions">
+                    <button type="button" class="btn btn-primary" onclick="window.Blazor.reconnect().then(function (ok) { if (!ok) location.reload(); }).catch(function () { location.reload(); })">Réessayer</button>
+                </div>
+            </div>
+
+            <div class="nx-reconnect__state nx-reconnect__state--rejected">
+                <h2 class="nx-reconnect__title">Session interrompue</h2>
+                <p class="nx-reconnect__text">
+                    La connexion avec le serveur a été perdue (inactivité, mise en veille ou redémarrage).
+                    Pour votre sécurité, vous devrez peut-être vous reconnecter.
+                </p>
+                <div class="nx-reconnect__actions">
+                    <button type="button" class="btn btn-primary" onclick="location.reload()">Recharger la page</button>
+                    <a href="/login" class="btn btn-outline-primary">Se reconnecter</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="js/cleanup-cookies.js?v=@AssetVersion"></script>
     <script src="js/auth.js?v=@AssetVersion"></script>

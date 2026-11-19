@@ -1,0 +1,110 @@
+/* ============================================
+   ÉCRAN DE RECONNEXION (connexion perdue, mise en veille, redémarrage du serveur)
+   Blazor ajoute les classes components-reconnect-show / -failed / -rejected
+   sur #components-reconnect-modal et renseigne les compteurs de tentatives.
+   ============================================ */
+
+#components-reconnect-modal {
+    display: none;
+}
+
+#components-reconnect-modal.components-reconnect-show,
+#components-reconnect-modal.components-reconnect-failed,
+#components-reconnect-modal.components-reconnect-rejected {
+    position: fixed;
+    inset: 0;
+    z-index: 100002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(0, 0, 12, 0.8);
+    backdrop-filter: blur(10px);
+    animation: nx-reconnect-in 0.4s ease both;
+}
+
+@keyframes nx-reconnect-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.nx-reconnect__panel {
+    position: relative;
+    width: min(100%, 440px);
+    padding: 2.5rem 2rem 2rem;
+    overflow: hidden;
+    border: 1px solid rgba(0, 204, 255, 0.3);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(10, 18, 60, 0.96) 0%, rgba(3, 6, 28, 0.98) 100%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 204, 255, 0.12);
+    text-align: center;
+}
+
+.nx-reconnect__panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--blue-cyan), var(--blue-electric));
+    box-shadow: 0 0 20px rgba(0, 204, 255, 0.6);
+}
+
+.nx-reconnect__logo {
+    width: 3.75rem;
+    height: 3.75rem;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 0 16px rgba(0, 204, 255, 0.5));
+}
+
+.nx-reconnect__state {
+    display: none;
+}
+
+#components-reconnect-modal.components-reconnect-show .nx-reconnect__state--show,
+#components-reconnect-modal.components-reconnect-failed .nx-reconnect__state--failed,
+#components-reconnect-modal.components-reconnect-rejected .nx-reconnect__state--rejected {
+    display: block;
+}
+
+.nx-reconnect__spinner {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+}
+
+.nx-reconnect__title {
+    margin: 0 0 0.75rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #ffffff;
+}
+
+.nx-reconnect__text {
+    margin: 0 0 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.nx-reconnect__state--show .nx-reconnect__text {
+    margin-bottom: 0;
+}
+
+.nx-reconnect__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.nx-reconnect__actions .btn {
+    width: 100%;
+}

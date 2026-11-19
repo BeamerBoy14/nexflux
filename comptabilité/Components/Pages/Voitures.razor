@@ -7,91 +7,155 @@
 @using System.ComponentModel.DataAnnotations
 @inject IServiceScopeFactory ServiceScopeFactory
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @inject AuthService AuthService
 @rendermode InteractiveServer
 
 <PageTitle>Voitures</PageTitle>
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Gestion des Voitures</h2>
-        <button class="btn btn-primary" @onclick="ShowAddModal">
+<div class="container mt-4 vt-page">
+    <div class="vt-header">
+        <div>
+            <h2 class="vt-title">Voitures</h2>
+            <p class="vt-subtitle">@(isLoading ? "Chargement…" : $"{voitures.Count} véhicule{(voitures.Count > 1 ? "s" : "")} · {FormatMontant(TotalDepenses)} dépensés")</p>
+        </div>
+        <button type="button" class="btn btn-primary" @onclick="ShowAddModal">
             <i class="bi bi-plus-circle" aria-hidden="true"></i> Ajouter une voiture
         </button>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            @if (isLoading)
+    @if (isLoading)
+    {
+        <div class="vt-list vt-list--loading" aria-hidden="true">
+            @for (var i = 0; i < 3; i++)
             {
-                <div class="skeleton-list">
-                    @for (var i = 0; i < 2; i++)
-                    {
-                        <div class="skeleton-card">
-                            <div class="skeleton-line w-45"></div>
-                            <div class="skeleton-line w-60"></div>
-                            <div class="skeleton-line w-35"></div>
-                        </div>
-                    }
-                </div>
-            }
-            else if (voitures.Any())
-            {
-                <div class="inline-card-list">
-                    @foreach (var voiture in voitures)
-                    {
-                        <div class="inline-card inline-card--voiture">
-                            <div class="inline-card-overview">
-                                <div class="voiture-card-head">
-                                    <VoitureLogoBadge VoitureId="voiture.Id" Nom="@voiture.Nom" Version="voiture.LogoUpdatedAt" Size="sm" />
-                                    <div>
-                                        <h5 class="inline-card-title">
-                                            <a class="inline-card-link stretched-link" href="voitures/@voiture.Id">@voiture.Nom</a>
-                                        </h5>
-                                        <span class="inline-card-date">Voir le détail et les dépenses <i class="bi bi-chevron-right" aria-hidden="true"></i></span>
-                                    </div>
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(voiture.Description))
-                                {
-                                    <p class="inline-card-description">@voiture.Description</p>
-                                }
-                            </div>
-                            <div class="inline-card-details">
-                                <div class="inline-card-detail">
-                                    <span class="inline-card-detail-label">Immatriculation</span>
-                                    <span class="inline-card-detail-value">@FormatValue(voiture.Immatriculation)</span>
-                                </div>
-                                <div class="inline-card-detail">
-                                    <span class="inline-card-detail-label">Année</span>
-                                    <span class="inline-card-detail-value">@(voiture.Annee?.ToString() ?? "-")</span>
-                                </div>
-                                <div class="inline-card-detail">
-                                    <span class="inline-card-detail-label">Kilométrage</span>
-                                    <span class="inline-card-detail-value">@FormatKilometrage(voiture.Kilometrage)</span>
-                                </div>
-                            </div>
-                            <div class="inline-card-actions">
-                                <button class="btn btn-icon btn-outline-primary" @onclick="() => EditVoiture(voiture)" title="Modifier" aria-label="Modifier @voiture.Nom">
-                                    <i class="bi bi-pencil" aria-hidden="true"></i>
-                                </button>
-                                <button class="btn btn-icon btn-outline-danger" @onclick="() => DeleteVoiture(voiture)" title="Supprimer" aria-label="Supprimer @voiture.Nom">
-                                    <i class="bi bi-trash" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="inline-card-empty text-center text-muted">
-                    <i class="bi bi-car-front-fill display-6 mb-3" aria-hidden="true"></i>
-                    <p class="fw-semibold mb-1">Aucune voiture enregistrée</p>
-                    <p class="mb-0">Ajoutez votre premier véhicule pour commencer.</p>
+                <div class="vt-skeleton-row">
+                    <div class="skeleton-chip vt-skeleton-logo"></div>
+                    <div class="vt-skeleton-lines">
+                        <div class="skeleton-line w-40"></div>
+                        <div class="skeleton-line w-60"></div>
+                    </div>
                 </div>
             }
         </div>
-    </div>
+    }
+    else if (!voitures.Any())
+    {
+        <div class="vt-empty">
+            <i class="bi bi-car-front-fill" aria-hidden="true"></i>
+            <p class="vt-empty-title">Aucune voiture enregistrée</p>
+            <p>Ajoutez votre premier véhicule pour commencer.</p>
+        </div>
+    }
+    else
+    {
+        var principale = VoiturePrincipale;
+        <div class="vt-kpis">
+            <div class="vt-kpi">
+                <span class="vt-kpi-label">Véhicules</span>
+                <span class="vt-kpi-value">@voitures.Count</span>
+                <span class="vt-kpi-sub">@(TotalKilometrage > 0 ? $"{TotalKilometrage.ToString("N0", Fr)} km cumulés" : "Kilométrage non renseigné")</span>
+            </div>
+            <div class="vt-kpi vt-kpi--expense">
+                <span class="vt-kpi-label">Total dépensé</span>
+                <span class="vt-kpi-value">@FormatMontant(TotalDepenses)</span>
+                <span class="vt-kpi-sub">@TotalOperations opération@(TotalOperations > 1 ? "s" : "") liée@(TotalOperations > 1 ? "s" : "") à une voiture</span>
+            </div>
+            <div class="vt-kpi">
+                <span class="vt-kpi-label">Véhicule le plus coûteux</span>
+                <span class="vt-kpi-value vt-kpi-value--text">@(principale?.Nom ?? "-")</span>
+                <span class="vt-kpi-sub">@(principale != null ? $"{FormatMontant(StatsDe(principale).Depenses)} · {Part(principale):0} % des dépenses" : "Aucune dépense liée")</span>
+            </div>
+        </div>
+
+        <div class="vt-toolbar">
+            <div class="vt-field vt-field--grow">
+                <label for="voitures-recherche" class="vt-field-label">Rechercher</label>
+                <div class="vt-search">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <input id="voitures-recherche" type="search" class="form-control" placeholder="Nom, immatriculation, description…"
+                           value="@searchText" @oninput="OnSearchInput" />
+                </div>
+            </div>
+            <div class="vt-field">
+                <label for="voitures-tri" class="vt-field-label">Trier par</label>
+                <select id="voitures-tri" class="form-select" value="@sortMode" @onchange="OnSortChanged">
+                    <option value="nom">Nom (A → Z)</option>
+                    <option value="depense">Dépenses (plus élevées d'abord)</option>
+                    <option value="annee">Année (plus récentes d'abord)</option>
+                    <option value="km">Kilométrage (plus élevé d'abord)</option>
+                </select>
+            </div>
+        </div>
+
+        @if (!FilteredVoitures.Any())
+        {
+            <div class="vt-empty">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <p class="vt-empty-title">Aucun résultat</p>
+                <p>Aucune voiture ne correspond à « @searchText ».</p>
+            </div>
+        }
+        else
+        {
+            <div class="vt-list">
+                <div class="vt-table-wrap">
+                    <table class="vt-table">
+                        <caption class="visually-hidden">Liste des voitures</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Voiture</th>
+                                <th scope="col" class="vt-col-wide">Véhicule</th>
+                                <th scope="col" class="vt-col-amount">Dépensé</th>
+                                <th scope="col" class="vt-col-actions"><span class="visually-hidden">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var voiture in FilteredVoitures)
+                            {
+                                var stats = StatsDe(voiture);
+                                <tr @onclick="() => ViewDetails(voiture.Id)">
+                                    <td class="vt-col-voiture">
+                                        <div class="vt-voiture-cell">
+                                            <VoitureLogoBadge VoitureId="voiture.Id" Nom="@voiture.Nom" Version="voiture.LogoUpdatedAt" Size="sm" />
+                                            <span class="vt-identity">
+                                                <a class="vt-name" href="/voitures/@voiture.Id" @onclick:stopPropagation="true">@voiture.Nom</a>
+                                                @if (!string.IsNullOrWhiteSpace(voiture.Description))
+                                                {
+                                                    <span class="vt-desc" title="@voiture.Description">@voiture.Description</span>
+                                                }
+                                                <span class="vt-inline-meta">@InlineInfo(voiture)</span>
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="vt-col-wide">
+                                        <span class="vt-line"><span class="vt-key">Immat.</span>@FormatValue(voiture.Immatriculation)</span>
+                                        <span class="vt-line"><span class="vt-key">Année</span>@(voiture.Annee?.ToString() ?? "-")</span>
+                                        <span class="vt-line"><span class="vt-key">Km</span>@FormatKilometrage(voiture.Kilometrage)</span>
+                                    </td>
+                                    <td class="vt-col-amount">
+                                        <span class="vt-amount">@FormatMontant(stats.Depenses)</span>
+                                        <span class="vt-share" role="img" aria-label="@Part(voiture).ToString("0") % des dépenses">
+                                            <span class="vt-share-bar" style="width:@PartBarre(voiture)%"></span>
+                                        </span>
+                                        <small class="vt-last">@stats.Count opération@(stats.Count > 1 ? "s" : "")@(stats.Gains > 0 ? $" · +{FormatMontant(stats.Gains)} de gains" : "")</small>
+                                    </td>
+                                    <td class="vt-col-actions">
+                                        <button type="button" class="btn btn-icon btn-outline-primary" @onclick="() => EditVoiture(voiture)" @onclick:stopPropagation="true" title="Modifier" aria-label="Modifier @voiture.Nom">
+                                            <i class="bi bi-pencil" aria-hidden="true"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-icon btn-outline-danger" @onclick="() => DeleteVoiture(voiture)" @onclick:stopPropagation="true" title="Supprimer" aria-label="Supprimer @voiture.Nom">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
 </div>
 
 <!-- Modal -->
@@ -178,6 +242,75 @@
     private Voiture currentVoiture = new();
     private bool isLoading = true;
 
+    private sealed record VoitureStats(int Count, decimal Depenses, decimal Gains);
+
+    private static readonly VoitureStats AucuneStat = new(0, 0m, 0m);
+    private static readonly System.Globalization.CultureInfo Fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+
+    private Dictionary<int, VoitureStats> stats = new();
+    private string searchText = string.Empty;
+    private string sortMode = "nom";
+
+    private VoitureStats StatsDe(Voiture voiture) => stats.TryGetValue(voiture.Id, out var s) ? s : AucuneStat;
+
+    private decimal TotalDepenses => stats.Values.Sum(s => s.Depenses);
+
+    private int TotalOperations => stats.Values.Sum(s => s.Count);
+
+    private long TotalKilometrage => voitures.Sum(v => (long)(v.Kilometrage ?? 0));
+
+    private Voiture? VoiturePrincipale => voitures
+        .Where(v => StatsDe(v).Depenses > 0)
+        .OrderByDescending(v => StatsDe(v).Depenses)
+        .FirstOrDefault();
+
+    private decimal Part(Voiture voiture) => TotalDepenses > 0 ? StatsDe(voiture).Depenses / TotalDepenses * 100m : 0m;
+
+    private string PartBarre(Voiture voiture)
+        => Math.Round(Math.Min(100m, Part(voiture)), 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string FormatMontant(decimal montant) => $"{montant.ToString("N2", Fr)} €";
+
+    private string InlineInfo(Voiture voiture)
+    {
+        var infos = new List<string>();
+        if (!string.IsNullOrWhiteSpace(voiture.Immatriculation)) infos.Add(voiture.Immatriculation!);
+        if (voiture.Annee.HasValue) infos.Add(voiture.Annee.Value.ToString());
+        if (voiture.Kilometrage.HasValue) infos.Add(FormatKilometrage(voiture.Kilometrage));
+        return string.Join(" · ", infos);
+    }
+
+    private IEnumerable<Voiture> FilteredVoitures
+    {
+        get
+        {
+            var texte = searchText.Trim();
+            var resultat = voitures.AsEnumerable();
+
+            if (texte.Length > 0)
+            {
+                resultat = resultat.Where(v => Contient(v.Nom, texte) || Contient(v.Immatriculation, texte) || Contient(v.Description, texte));
+            }
+
+            return sortMode switch
+            {
+                "depense" => resultat.OrderByDescending(v => StatsDe(v).Depenses).ThenBy(v => v.Nom),
+                "annee" => resultat.OrderByDescending(v => v.Annee ?? 0).ThenBy(v => v.Nom),
+                "km" => resultat.OrderByDescending(v => v.Kilometrage ?? 0).ThenBy(v => v.Nom),
+                _ => resultat.OrderBy(v => v.Nom, StringComparer.CurrentCultureIgnoreCase)
+            };
+        }
+    }
+
+    private static bool Contient(string? valeur, string texte)
+        => valeur != null && Fr.CompareInfo.IndexOf(valeur, texte, System.Globalization.CompareOptions.IgnoreCase | System.Globalization.CompareOptions.IgnoreNonSpace) >= 0;
+
+    private void OnSearchInput(ChangeEventArgs e) => searchText = e.Value?.ToString() ?? string.Empty;
+
+    private void OnSortChanged(ChangeEventArgs e) => sortMode = e.Value?.ToString() ?? "nom";
+
+    private void ViewDetails(int voitureId) => NavigationManager.NavigateTo($"/voitures/{voitureId}");
+
     private byte[]? pendingLogo;
     private string? pendingLogoType;
     private string? pendingLogoPreview;
@@ -200,6 +333,7 @@
         if (!userId.HasValue)
         {
             voitures = new List<Voiture>();
+            stats = new Dictionary<int, VoitureStats>();
             return;
         }
 
@@ -209,6 +343,19 @@
             .Where(v => v.UtilisateurId == userId.Value)
             .OrderBy(v => v.Nom)
             .ToListAsync();
+
+        stats = (await db.Transactions
+                .Where(t => t.UtilisateurId == userId.Value && t.VoitureId != null)
+                .GroupBy(t => t.VoitureId!.Value)
+                .Select(g => new
+                {
+                    VoitureId = g.Key,
+                    Count = g.Count(),
+                    Depenses = g.Sum(t => t.Type == "Dépense" ? t.Montant : 0m),
+                    Gains = g.Sum(t => t.Type == "Gain" ? t.Montant : 0m)
+                })
+                .ToListAsync())
+            .ToDictionary(x => x.VoitureId, x => new VoitureStats(x.Count, x.Depenses, x.Gains));
     }
 
     private void ShowAddModal()
@@ -286,7 +433,12 @@
 
     private async Task DeleteVoiture(Voiture voiture)
     {
-        if (!await JSRuntime.InvokeAsync<bool>("confirm", $"Êtes-vous sûr de vouloir supprimer la voiture '{voiture.Nom}' ?"))
+        var operations = StatsDe(voiture).Count;
+        var message = operations > 0
+            ? $"Êtes-vous sûr de vouloir supprimer la voiture '{voiture.Nom}' ?\n\nLes {operations} opération(s) associée(s) seront conservées mais ne seront plus rattachées à aucune voiture."
+            : $"Êtes-vous sûr de vouloir supprimer la voiture '{voiture.Nom}' ?";
+
+        if (!await JSRuntime.InvokeAsync<bool>("confirm", message))
             return;
 
         var userId = AuthService.GetUtilisateurId();
